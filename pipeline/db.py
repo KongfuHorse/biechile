@@ -17,7 +17,9 @@ def using_supabase():
 
 
 def _h(extra=None):
-    h = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
+    h = {"apikey": KEY, "Content-Type": "application/json"}
+    if not KEY.startswith("sb_"):  # legacy service_role JWT also goes in Authorization; new sb_secret_ keys must not
+        h["Authorization"] = f"Bearer {KEY}"
     h.update(extra or {})
     return h
 
