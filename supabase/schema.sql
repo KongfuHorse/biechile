@@ -44,3 +44,10 @@ create table if not exists runs (
 -- The website never talks to Supabase directly; it reads exported JSON files.
 alter table records enable row level security;
 alter table runs enable row level security;
+
+-- New Supabase projects do not grant table access to API roles automatically.
+-- Only service_role (GitHub Actions) gets access; anon/authenticated stay locked.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.records to service_role;
+grant select, insert, update, delete on public.runs to service_role;
+grant usage, select on sequence public.runs_id_seq to service_role;
