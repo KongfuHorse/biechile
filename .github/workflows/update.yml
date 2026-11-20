@@ -1,0 +1,77 @@
+name: Daily update and deploy
+
+on:
+  schedule:
+    - cron: "23 11 * * *"   # every day 11:23 UTC (6:23 New York, winter time)
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Backfill from date (YYYY-MM-DD). Leave empty for normal daily update."
+        required: false
+        default: ""
+  push:
+    branches: [main]
+    paths: ["site/**", "pipeline/**", "ref/**"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Fetch new records and export JSON
+        id: fetch
+        continue-on-error: true   # still deploy the site if one source fails
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          FDA_USER: ${{ secrets.FDA_USER }}
+          FDA_KEY: ${{ secrets.FDA_KEY }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            python -m pipeline.run --export-only
+          elif [ -n "${{ github.event.inputs.since }}" ]; then
+            python -m pipeline.run --since "${{ github.event.inputs.since }}"
+          else
+            python -m pipeline.run
+          fi
+
+      - name: Add Cloudflare Web Analytics
+        if: ${{ vars.CF_BEACON_TOKEN != '' }}
+        run: |
+          sed -i "s|<!-- CF_BEACON -->|<script defer src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"${{ vars.CF_BEACON_TOKEN }}\"}'></script>|" site/index.html
+
+      - name: Stop if no data was exported (keeps the old site online)
+        run: test -f site/data/meta.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Mark run as failed if a source failed
+        if: ${{ steps.fetch.outcome == 'failure' }}
+        run: |
+          echo "A data source failed. Check the step log above and the runs table in Supabase."
+          exit 1
