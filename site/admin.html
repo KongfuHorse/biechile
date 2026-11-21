@@ -76,6 +76,8 @@
   .cands .warn { color:var(--bad); font-size:12px; }
   .actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
 
+  .pager { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; font-size:13px; }
+  .pager input { width:64px; text-align:center; }
   #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--text); color:var(--bg); padding:8px 16px; border-radius:8px; opacity:0; transition:opacity .2s; pointer-events:none; }
   #toast.show { opacity:1; }
   #toast.err { background:var(--bad); color:#fff; }
@@ -152,13 +154,13 @@
         <tbody id="firmRows"></tbody>
       </table>
     </div>
-    <div class="actions"><button type="button" id="moreFirms" class="hidden">显示更多</button></div>
+    <div class="pager" id="firmPager"></div>
   </section>
 
   <!-- 翻译核对 -->
   <section id="tab-terms" class="card hidden">
     <div class="help">
-      对照表里没有的新名称，以及日本、欧盟、韩国的内容，会先由 AI（Claude Haiku）自动翻译，网站上标"机翻"。在这里改好译文，点"确认"后，标记会在下一次每日更新后去掉。"问题类型"一行填中文类型名，多个用竖线 | 隔开，例如：农药残留|污染物。
+      对照表里没有的新名称，以及日本、欧盟、韩国的内容，会先由 AI（Claude Haiku）自动翻译，网站上标"机翻"。在这里改好译文，点"确认"后，标记会在下一次每日更新后去掉。"全部确认"会把所有待核对的译文按现有内容一次确认（不只是当前页）。"问题类型"一行填中文类型名，多个用竖线 | 隔开，例如：农药残留|污染物。
     </div>
     <div class="bar">
       <label class="small" for="termStatus">显示
@@ -169,13 +171,15 @@
         </select>
       </label>
       <span class="muted small" id="termCount"></span>
+      <button type="button" class="primary" id="termAll">全部确认</button>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>类型</th><th>英文原文</th><th>中文译文</th><th>状态</th><th></th></tr></thead>
+        <thead><tr><th>类型</th><th>原文</th><th>中文译文</th><th>状态</th><th></th></tr></thead>
         <tbody id="termRows"></tbody>
       </table>
     </div>
+    <div class="pager" id="termPager"></div>
   </section>
 
   <!-- 产品图片 -->
@@ -202,7 +206,7 @@
       <button type="button" class="primary" id="imgAllAi">全部按 AI 推荐处理</button>
     </div>
     <div id="imgList"></div>
-    <div class="actions"><button type="button" id="moreImgs" class="hidden">显示更多</button></div>
+    <div class="pager" id="imgPager"></div>
   </section>
 </div>
 
@@ -215,12 +219,21 @@ const KIND_NAMES = { fda_product: "FDA 产品名", fda_industry: "FDA 行业类�
   jp_product: "日本 产品名", jp_detail: "日本 违规内容", jp_prob: "日本 问题类型",
   eu_product: "欧盟 产品名", eu_detail: "欧盟 通报标题", eu_prob: "欧盟 问题类型",
   kr_product: "韩国 产品名", kr_detail: "韩国 违规内容", kr_prob: "韩国 问题类型",
-  sg_product: "Safety Gate 产品名", sg_detail: "Safety Gate 危害和描述", sg_prob: "Safety Gate 问题类型（不使用）" };
-const PAGE = 100;
+  sg_product: "Safety Gate 产品名", sg_detail: "Safety Gate 危害和描述" };
+const PAGE = 10;   // items per page in all three tabs
+function pager(el, page, total, go) {
+  const pages = Math.max(1, Math.ceil(total / PAGE));
+  if (total <= PAGE) { $(el).innerHTML = ""; return; }
+  $(el).innerHTML = `<button type="button" data-p="${page - 1}" ${page <= 1 ? "disabled" : ""}>上一页</button>
+    <span>第 <input type="number" min="1" max="${pages}" value="${page}" aria-label="页码"> / ${pages} 页（共 ${total} 条）</span>
+    <button type="button" data-p="${page + 1}" ${page >= pages ? "disabled" : ""}>下一页</button>`;
+  $(el).onclick = e => { const b = e.target.closest("button[data-p]"); if (b) go(Math.min(pages, Math.max(1, +b.dataset.p))); };
+  $(el).querySelector("input").onchange = e => go(Math.min(pages, Math.max(1, Math.round(+e.target.value) || 1)));
+}
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
-let token = null, firms = [], terms = [], shown = PAGE, editing = null;
+let token = null, firms = [], terms = [], termTotal = 0, firmPage = 1, termPage = 1, editing = null;
 
 function store(k, v) { try { v === undefined ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} }
 function load(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
@@ -320,9 +333,11 @@ function candLinks(name) {
 }
 function renderFirms() {
   const view = firmView(), done = firms.filter(f => f.zh_name).length;
-  $("firmCount").textContent = `共 ${firms.length} 家，已核实 ${done} 家，当前显示 ${Math.min(shown, view.length)} / ${view.length}`;
-  $("moreFirms").classList.toggle("hidden", view.length <= shown);
-  $("firmRows").innerHTML = view.slice(0, shown).map(f => {
+  const pages = Math.max(1, Math.ceil(view.length / PAGE));
+  if (firmPage > pages) firmPage = pages;
+  $("firmCount").textContent = `共 ${firms.length} 家，已核实 ${done} 家，符合条件 ${view.length} 家`;
+  pager("firmPager", firmPage, view.length, p => { firmPage = p; editing = null; renderFirms(); });
+  $("firmRows").innerHTML = view.slice((firmPage - 1) * PAGE, firmPage * PAGE).map(f => {
     const rank = view.indexOf(f) + 1;
     const zh = f.zh_name
       ? `<span class="tag ok">已核实</span> ${esc(f.zh_name)}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
@@ -382,28 +397,41 @@ $("firmRows").addEventListener("submit", async e => {
     editing = null; await loadFirms(); toast("已保存");
   } catch (err) { toast(err.message, true); }
 });
-$("firmSearch").addEventListener("input", () => { shown = PAGE; renderFirms(); });
-$("onlyTodo").addEventListener("change", () => { shown = PAGE; renderFirms(); });
-$("onlyFood").addEventListener("change", () => { shown = PAGE; renderFirms(); });
-$("firmSort").addEventListener("change", () => { shown = PAGE; renderFirms(); });
-$("moreFirms").addEventListener("click", () => { shown += PAGE; renderFirms(); });
+$("firmSearch").addEventListener("input", () => { firmPage = 1; renderFirms(); });
+$("onlyTodo").addEventListener("change", () => { firmPage = 1; renderFirms(); });
+$("onlyFood").addEventListener("change", () => { firmPage = 1; renderFirms(); });
+$("firmSort").addEventListener("change", () => { firmPage = 1; renderFirms(); });
 
 // ---------- 翻译核对 ----------
 async function loadTerms() {
-  terms = await rpc("admin_terms", { p_token: token, p_status: $("termStatus").value });
+  const res = await rpc("admin_terms_page", { p_token: token, p_status: $("termStatus").value,
+                                              p_offset: (termPage - 1) * PAGE, p_limit: PAGE });
+  terms = res.rows; termTotal = res.total;
+  if (!terms.length && termPage > 1) { termPage = Math.max(1, Math.ceil(termTotal / PAGE)); return loadTerms(); }
   renderTerms();
 }
 function renderTerms() {
-  $("termCount").textContent = `共 ${terms.length} 条`;
+  $("termCount").textContent = `共 ${termTotal} 条`;
+  $("termAll").classList.toggle("hidden", $("termStatus").value !== "machine" || !termTotal);
+  pager("termPager", termPage, termTotal, p => { termPage = p; loadTerms().catch(err => toast(err.message, true)); });
   $("termRows").innerHTML = terms.map((t, i) => `<tr>
     <td class="small">${esc(KIND_NAMES[t.kind] || t.kind)}</td>
     <td>${esc(t.source)}</td>
     <td><input id="term-${i}" value="${esc(t.zh)}" aria-label="中文译文" style="width:100%; min-width:200px"></td>
     <td>${t.status === "verified" ? '<span class="tag ok">已核对</span>' : '<span class="tag mt">机翻</span>'}</td>
-    <td><button type="button" class="primary" data-term="${i}">确认</button></td>
+    <td><button type="button" class="primary" data-term="${i}" style="white-space:nowrap">确认</button></td>
   </tr>`).join("") || `<tr><td colspan="5" class="muted">没有需要核对的翻译。</td></tr>`;
 }
-$("termStatus").addEventListener("change", () => loadTerms().catch(err => toast(err.message, true)));
+$("termStatus").addEventListener("change", () => { termPage = 1; loadTerms().catch(err => toast(err.message, true)); });
+$("termAll").addEventListener("click", async () => {
+  if (!confirm(`将按现有译文确认全部 ${termTotal} 条待核对翻译，网站上的"机翻"标记会在下一次每日更新后去掉。确定吗？`)) return;
+  $("termAll").disabled = true;
+  try {
+    const n = await rpc("admin_verify_all_terms", { p_token: token });
+    toast(`已确认 ${n} 条`); termPage = 1; await loadTerms();
+  } catch (err) { toast(err.message, true); }
+  $("termAll").disabled = false;
+});
 $("termRows").addEventListener("click", async e => {
   const b = e.target.closest("[data-term]"); if (!b) return;
   const t = terms[+b.dataset.term];
@@ -415,16 +443,19 @@ $("termRows").addEventListener("click", async e => {
 
 // ---------- 产品图片 ----------
 const STORE = SUPABASE_URL + "/storage/v1/object/public/rasff/";
-let imgRecs = [], imgLoaded = false, imgShown = 20, imgChoice = {};
+let imgRecs = [], imgLoaded = false, imgPage = 1, imgChoice = {};
 async function loadImages() {
   imgRecs = await rpc("admin_images", { p_token: token, p_status: $("imgStatus").value });
-  imgLoaded = true; imgShown = 20; imgChoice = {};
+  imgLoaded = true; imgChoice = {};
   renderImages();
 }
 function renderImages() {
   $("imgCount").textContent = `共 ${imgRecs.length} 条通报`;
-  $("moreImgs").classList.toggle("hidden", imgRecs.length <= imgShown);
-  $("imgList").innerHTML = imgRecs.slice(0, imgShown).map((r, ri) => {
+  const pages = Math.max(1, Math.ceil(imgRecs.length / PAGE));
+  if (imgPage > pages) imgPage = pages;
+  pager("imgPager", imgPage, imgRecs.length, p => { imgPage = p; renderImages(); window.scrollTo(0, $("tab-images").offsetTop); });
+  const start = (imgPage - 1) * PAGE;
+  $("imgList").innerHTML = imgRecs.slice(start, start + PAGE).map((r, i) => { const ri = start + i;
     const imgs = r.images.map(im => {
       const st = imgChoice[im.id] || im.status;
       const border = st === "approved" ? "var(--good)" : st === "rejected" ? "var(--bad)" : (im.ai_ok ? "var(--good)" : "var(--line)");
@@ -501,8 +532,7 @@ $("imgAllAi").addEventListener("click", async () => {
   } catch (err) { toast(err.message, true); }
   $("imgAllAi").disabled = false;
 });
-$("imgStatus").addEventListener("change", () => loadImages().catch(err => toast(err.message, true)));
-$("moreImgs").addEventListener("click", () => { imgShown += 20; renderImages(); });
+$("imgStatus").addEventListener("change", () => { imgPage = 1; loadImages().catch(err => toast(err.message, true)); });
 
 // ---------- 启动 ----------
 token = load("adminToken");
