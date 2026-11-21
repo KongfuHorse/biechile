@@ -186,6 +186,7 @@
         <li>点图片可以切换"通过 / 不通过"，再点"保存本条"。只有"通过"的图片会显示在网站上，下一次每日更新后生效。</li>
         <li>"采用 AI 推荐"会把本条中 AI 认为是产品照片的图设为通过，其余设为不通过。</li>
         <li>判断不了时点"打开警示页"对照原文。</li>
+        <li>"全部按 AI 推荐处理"会处理所有待审核的图片：AI 认为是产品照片的设为通过，其余设为不通过。AI 没判断的图片保持待审核。已经审核过的图片不受影响。</li>
       </ul>
     </div>
     <div class="bar">
@@ -198,6 +199,7 @@
         </select>
       </label>
       <span class="muted small" id="imgCount"></span>
+      <button type="button" class="primary" id="imgAllAi">全部按 AI 推荐处理</button>
     </div>
     <div id="imgList"></div>
     <div class="actions"><button type="button" id="moreImgs" class="hidden">显示更多</button></div>
@@ -480,6 +482,24 @@ $("imgList").addEventListener("click", async e => {
     else if (b.dataset.ai) await saveRec(+b.dataset.ai, "ai");
     else if (b.dataset.none) await saveRec(+b.dataset.none, "none");
   } catch (err) { toast(err.message, true); }
+});
+$("imgAllAi").addEventListener("click", async () => {
+  try {
+    const all = await rpc("admin_images", { p_token: token, p_status: "candidate" });
+    const ok = [], no = [];
+    all.forEach(r => r.images.forEach(im => {
+      if (im.status !== "candidate" || im.ai_ok === null || im.ai_ok === undefined) return;
+      (im.ai_ok ? ok : no).push(im.id);
+    }));
+    if (!ok.length && !no.length) { toast("没有待处理的图片"); return; }
+    if (!confirm(`将处理 ${all.length} 条通报的待审核图片：通过 ${ok.length} 张，不通过 ${no.length} 张。确定吗？`)) return;
+    $("imgAllAi").disabled = true;
+    if (ok.length) await rpc("admin_set_images", { p_token: token, p_ids: ok, p_status: "approved" });
+    if (no.length) await rpc("admin_set_images", { p_token: token, p_ids: no, p_status: "rejected" });
+    toast(`已通过 ${ok.length} 张，不通过 ${no.length} 张`);
+    await loadImages();
+  } catch (err) { toast(err.message, true); }
+  $("imgAllAi").disabled = false;
 });
 $("imgStatus").addEventListener("change", () => loadImages().catch(err => toast(err.message, true)));
 $("moreImgs").addEventListener("click", () => { imgShown += 20; renderImages(); });
