@@ -1,0 +1,11 @@
+name: Probe Korea site (temporary)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in https://impfood.mfds.go.kr/CFCEE01F01 https://www.foodsafetykorea.go.kr/ ; do
+            curl -s -m 40 -o /tmp/p.html -w "%{http_code} %{time_total}s $u\n" "$u" || echo "fail $u"
+            grep -o "총 <strong>[0-9]*" /tmp/p.html | head -1 || true
+          done
