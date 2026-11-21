@@ -67,17 +67,30 @@ def run_eu(since_arg, cache):
 
 
 def run_sg(since_arg, cache):
-    """EU Safety Gate, one weekly report at a time. Daily run looks at the last 3 weeks."""
+    """EU Safety Gate. Weekly reports are grouped so translation runs in bigger parallel rounds.
+    Daily run looks at the last 3 weeks."""
     since = since_arg or (date.today() - timedelta(days=21)).isoformat()
     have = db.ids("SG") if since_arg else set()
     fetched = stored = 0
+    pending, refs = [], []
+
+    def flush():
+        nonlocal fetched, stored, pending, refs
+        if not pending:
+            return
+        tr = mt.prepare("SG", pending, sg.product_text, sg.detail_text, cache)
+        recs = list({x["id"]: x for x in (sg.normalize(r, tr(r)) for r in pending)}.values())
+        fetched += len(pending)
+        stored += db.upsert(recs)
+        print(f"  SG {refs[0]}..{refs[-1]}: {len(recs)} records", flush=True)
+        pending, refs = [], []
+
     for ref, raw in sg.fetch_reports(since):
-        raw = [r for r in raw if sg.rec_id(r) not in have]
-        tr = mt.prepare("SG", raw, sg.product_text, sg.detail_text, cache)
-        recs = list({x["id"]: x for x in (sg.normalize(r, tr(r)) for r in raw)}.values())
-        fetched += len(raw)
-        stored += db.upsert(recs) if recs else 0
-        print(f"  SG {ref}: {len(recs)} records", flush=True)
+        pending += [r for r in raw if sg.rec_id(r) not in have]
+        refs.append(ref)
+        if len(pending) >= 300:
+            flush()
+    flush()
     db.log_run("SG", fetched, stored, "ok", f"since={since} skipped_existing={len(have)}")
 
 
