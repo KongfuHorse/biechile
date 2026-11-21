@@ -49,6 +49,7 @@ jobs:
           FDA_USER: ${{ secrets.FDA_USER }}
           FDA_KEY: ${{ secrets.FDA_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PYTHONUNBUFFERED: "1"
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             python -m pipeline.run --export-only

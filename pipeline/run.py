@@ -52,7 +52,23 @@ INTL = {
 }
 
 
+def run_eu(since_arg, cache):
+    cfg = INTL["eu"]
+    since = since_arg or (date.today() - timedelta(days=cfg["days"])).isoformat()
+    # in a backfill, skip what is stored; in the daily run, refresh recent ones (follow-ups add measures)
+    have = {i[3:] for i in db.ids("EU")} if since_arg else set()
+    fetched = stored = 0
+    for _, raw in eu.fetch_month_batches(since, skip_refs=have):
+        tr = mt.prepare("EU", raw, cfg["product"], cfg["detail"], cache)
+        recs = [eu.normalize(r, tr(r)) for r in raw]
+        fetched += len(raw)
+        stored += db.upsert(recs) if recs else 0
+    db.log_run("EU", fetched, stored, "ok", f"since={since} skipped_existing={len(have)}")
+
+
 def run_intl(key, since_arg, cache):
+    if key == "eu":
+        return run_eu(since_arg, cache)
     cfg = INTL[key]
     since = since_arg or (date.today() - timedelta(days=cfg["days"] or 0)).isoformat()
     raw = cfg["fetch"](since)
@@ -62,6 +78,7 @@ def run_intl(key, since_arg, cache):
     if since_arg:
         recs = [r for r in recs if r["pub_date"] >= since_arg]
     n = db.upsert(recs)
+    print(f"  {key.upper()}: {len(recs)} records stored", flush=True)
     untranslated = sum(1 for r in recs if not r["machine_translated"])
     db.log_run(key.upper(), len(raw), n, "ok", f"since={since} untranslated={untranslated}")
 

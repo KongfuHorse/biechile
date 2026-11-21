@@ -67,51 +67,76 @@ COUNTRY = {"AT": "奥地利", "BE": "比利时", "BG": "保加利亚", "HR": "�
            "GB": "英国", "XI": "北爱尔兰", "UK": "英国"}
 
 
+S = requests.Session()
+S.headers.update(HEAD)
+
+
+def _req(method, url, **kw):
+    for attempt in range(3):
+        try:
+            r = S.request(method, url, timeout=45, **kw)
+            r.raise_for_status()
+            return r
+        except requests.RequestException:
+            if attempt == 2:
+                raise
+            time.sleep(5 * (attempt + 1))
+
+
 def _date(s):
     return dt.datetime.strptime(s[:10], "%d-%m-%Y").date()
 
 
-def search(since, until=None, delay=0.3):
-    """All notification summaries validated between since and until, origin China only."""
+def months(since, until=None):
     d0 = dt.date.fromisoformat(since)
     d1 = dt.date.fromisoformat(until) if until else dt.date.today()
-    out = []
-    while d0 <= d1:  # one month at a time keeps pages small
+    while d0 <= d1:
         end = min(d1, (d0.replace(day=28) + dt.timedelta(days=4)).replace(day=1) - dt.timedelta(days=1))
-        page = 1
-        while True:
-            body = {"parameters": {"pageNumber": page, "itemsPerPage": 100},
-                    "ecValidDateFrom": d0.strftime("%d-%m-%Y 00:00:00"),
-                    "ecValidDateTo": end.strftime("%d-%m-%Y 23:59:59")}
-            r = requests.post(API + "/search/consolidated/", json=body, headers=HEAD, timeout=90)
-            r.raise_for_status()
-            data = r.json()
-            items = data.get("notifications") or []
-            out += [n for n in items if any((c or {}).get("isoCode") == "CN" for c in n.get("originCountries") or [])]
-            if page >= (data.get("totalPages") or 1) or not items:
-                break
-            page += 1
-            time.sleep(delay)
+        yield d0, end
         d0 = end + dt.timedelta(days=1)
-    return out
+
+
+def search_range(d0, d1, delay=0.2):
+    """Notification summaries validated between two dates, origin China only."""
+    out, page = [], 1
+    while True:
+        body = {"parameters": {"pageNumber": page, "itemsPerPage": 100},
+                "ecValidDateFrom": d0.strftime("%d-%m-%Y 00:00:00"),
+                "ecValidDateTo": d1.strftime("%d-%m-%Y 23:59:59")}
+        data = _req("POST", API + "/search/consolidated/", json=body).json()
+        items = data.get("notifications") or []
+        out += [n for n in items if any((c or {}).get("isoCode") == "CN" for c in n.get("originCountries") or [])]
+        if page >= (data.get("totalPages") or 1) or not items:
+            return out
+        page += 1
+        time.sleep(delay)
 
 
 def detail(notif_id):
-    r = requests.get(f"{API}/view/id/{notif_id}/", headers=HEAD, timeout=90)
-    r.raise_for_status()
-    return r.json()
+    return _req("GET", f"{API}/view/id/{notif_id}/").json()
 
 
-def fetch(since, until=None, delay=0.3):
-    out = []
-    for n in search(since, until):
-        try:
-            d = detail(n["notifId"])
-        except requests.RequestException:
-            d = {}
-        out.append({"summary": n, "detail": d})
-        time.sleep(delay)
-    return out
+def fetch_month_batches(since, until=None, skip_refs=(), delay=0.2):
+    """Yield (month_start, [records]) one month at a time. skip_refs: references already stored."""
+    for d0, d1 in months(since, until):
+        t = time.time()
+        found = search_range(d0, d1)
+        out = []
+        for n in found:
+            if n["reference"] in skip_refs:
+                continue
+            try:
+                d = detail(n["notifId"])
+            except requests.RequestException:
+                d = {}
+            out.append({"summary": n, "detail": d})
+            time.sleep(delay)
+        print(f"  EU {d0:%Y-%m}: China {len(found)}, new {len(out)}, {time.time() - t:.0f}s", flush=True)
+        yield d0, out
+
+
+def fetch(since, until=None):
+    return [r for _, batch in fetch_month_batches(since, until) for r in batch]
 
 
 def group(rec):

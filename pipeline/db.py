@@ -77,6 +77,21 @@ def fetch_table(name, select="*", query=""):
     return r.json()
 
 
+def ids(src):
+    """All record ids of one source."""
+    if not using_supabase():
+        return {i for i, r in _load_local().items() if r.get("src") == src}
+    out, step = set(), 1000
+    while True:
+        r = requests.get(f"{URL}/rest/v1/records?select=id&src=eq.{src}&order=id",
+                         headers=_h({"Range-Unit": "items", "Range": f"{len(out)}-{len(out) + step - 1}"}), timeout=120)
+        r.raise_for_status()
+        rows = r.json()
+        out |= {x["id"] for x in rows}
+        if len(rows) < step:
+            return out
+
+
 def max_tw_id():
     """Highest Taiwan notice id already stored (0 if none)."""
     if using_supabase():
