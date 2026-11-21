@@ -273,11 +273,14 @@ def normalize_fda(r):
     ind = r.get("IndustryCodeDescription") or ""
     if ind not in IND_ZH:
         untranslated["fda_industry"].add(ind)
+    grp = fda_group(r["ProductCode"])
+    if grp == "食品" and ("(FOODWARE, COOKWARE & TABLEWARE)" in pdesc or pdesc.startswith("BOTTLES AND JARS")):
+        grp = "食品接触材料"  # tableware and containers, same group as Taiwan's 容器具
     yes = lambda v: (v or "").strip() == "Yes"
     return {
         "id": f"US-{r['ShipmentID']}-{r['RefusalDate']}", "src": "US",
         "pub_date": r["RefusalDate"], "insp_date": None,
-        "grp": fda_group(r["ProductCode"]), "ind": IND_ZH.get(ind, ind),
+        "grp": grp, "ind": IND_ZH.get(ind, ind),
         "product": _fda_product_zh.get(pdesc, pdesc), "product_orig": pdesc,
         "problems": sorted(set(probs)) or ["其他"], "detail": "；".join(reasons),
         "legal_limit": "", "quantity": "", "firm": (r.get("FirmName") or "").strip(), "importer": "",
