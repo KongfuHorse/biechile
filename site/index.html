@@ -234,6 +234,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <li>FDA 的拒收不一定经过化验。很多是依据进口警报、标签或注册手续直接拒收，文书用语是"appears to"（看起来）。"检测"一栏只标出有 FDA 或私人实验室化验记录的。</li>
         <li>台湾的记录都是边境抽样检验的结果。"食品接触材料"指餐具、烘焙纸、砧板等容器具。</li>
         <li>条数多不等于问题率高。中国对美国和台湾的出口量很大，不合格率需要结合进口总批数来看。</li>
+        <li>FDA 只公布企业英文名。中文名只在人工核实（对照工商登记信息）后显示，标"已核实"。</li>
         <li>FDA 产品名称和拒收原因由我们翻译成中文。新出现的名称先用 AI 自动翻译，标有"机翻"，人工核对后去掉标记。以英文原文为准。</li>
         <li>左侧色条：红色是健康风险类（农药、兽药残留，污染物，微生物）；橙色是添加剂、材质、卫生生产类；灰色是标签、手续类。</li>
       </ul>
@@ -294,7 +295,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       if (st.prob && r.prob.indexOf(st.prob) === -1) return false;
       if (st.lab && !r.lab) return false;
       if (q) {
-        var hay = (r.p + " " + (r.p0 || "") + " " + r.ind + " " + r.f + " " + r.imp + " " + r.x + " " + r.grp).toLowerCase();
+        var hay = (r.p + " " + (r.p0 || "") + " " + r.ind + " " + r.f + " " + (r.fz || "") + " " + r.imp + " " + r.x + " " + r.grp).toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
       return true;
@@ -391,7 +392,8 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       var det = '<div class="detail">' + esc(r.x) + "</div>";
       if (r.lim) det += '<div class="small">限量：' + esc(r.lim) + "</div>";
       if (r.q) det += '<div class="small">数量：' + esc(r.q) + " · " + esc(r.act) + "</div>";
-      var firm = esc(r.f) + (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
+      var firm = esc(r.f) + (r.fz ? '<div class="small">中文名：' + esc(r.fz) + "（已核实）</div>" : "") +
+        (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
       var link = r.src === "TW" ? "TFDA 原文" : "FDA 企业档案";
       return '<tr class="sev-' + sev(r.prob) + '">' +

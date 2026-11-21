@@ -68,6 +68,15 @@ def fetch_all(columns="*"):
     return sorted(_load_local().values(), key=lambda r: (r["pub_date"], r["id"]), reverse=True)
 
 
+def fetch_table(name, select="*", query=""):
+    """Read a whole small table (Supabase only; returns [] in local mode)."""
+    if not using_supabase():
+        return []
+    r = requests.get(f"{URL}/rest/v1/{name}?select={select}{query}", headers=_h(), timeout=120)
+    r.raise_for_status()
+    return r.json()
+
+
 def max_tw_id():
     """Highest Taiwan notice id already stored (0 if none)."""
     if using_supabase():

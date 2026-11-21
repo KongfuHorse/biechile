@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>biechile 后台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f4f6f7; --card:#fff; --text:#17212b; --muted:#5b6672; --line:#dce1e6; --accent:#0f5c6e; --accent-soft:#e3eff2;
+          --good:#1d7a4c; --bad:#b3261e; --warn:#fff6dc; --input:#fff; --btn:#0f5c6e; color-scheme:light; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#10161b; --card:#172028; --text:#e5eaee; --muted:#9ba7b2; --line:#2a353f; --accent:#62b4c6; --accent-soft:#1d3138;
+            --good:#5fd38a; --bad:#f08a82; --warn:#3a3320; --input:#121a20; --btn:#1f7a8f; color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.55 "Noto Sans SC", "PingFang SC", "Microsoft YaHei", Arial, sans-serif; }
+  .hidden { display:none !important; }
+  .logo { font-size:24px; letter-spacing:-.02em; line-height:1; white-space:nowrap; font-weight:700; }
+  .logo b { color:var(--accent); }
+  .logo small { font-size:14px; font-weight:500; color:var(--muted); margin-left:8px; }
+  .wrap { max-width:1180px; margin:0 auto; padding:20px 16px 60px; }
+  h1 { font-size:22px; margin:0; }
+  h2 { font-size:16px; margin:0 0 6px; }
+  .muted { color:var(--muted); }
+  .small { font-size:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; }
+  button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text); padding:6px 12px; }
+  button:hover { border-color:var(--muted); }
+  button.primary { background:var(--btn); border-color:var(--btn); color:#fff; font-weight:500; }
+  button.danger { color:var(--bad); }
+  button:disabled { opacity:.5; cursor:default; }
+  input, select, textarea { font:inherit; color:var(--text); background:var(--input); border:1px solid var(--line); border-radius:8px; padding:6px 8px; min-width:0; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline:2px solid var(--accent); outline-offset:-1px; }
+  label { display:block; }
+  a { color:var(--accent); }
+
+  /* 登录 */
+  #login { max-width:340px; margin:12vh auto 0; }
+  #login input { width:100%; margin:4px 0 12px; padding:8px 10px; }
+  #login button { width:100%; padding:9px; }
+  .error { color:var(--bad); min-height:20px; margin-top:8px; }
+
+  /* 顶部 */
+  header { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  header .right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .tabs button { border-radius:999px; padding:7px 14px; font-weight:500; }
+  .tabs button.on { background:var(--btn); color:#fff; border-color:var(--btn); }
+  .help { background:var(--accent-soft); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
+  .help ul { margin:4px 0 0; padding-left:20px; }
+  .bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+
+  /* 表格 */
+  .table-wrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; min-width:860px; }
+  th { text-align:left; font-weight:500; font-size:12px; color:var(--muted); padding:6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  td { padding:7px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  td.num { font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .tag { display:inline-block; font-size:12px; padding:0 7px; border-radius:4px; white-space:nowrap; }
+  .tag.ok { color:var(--good); border:1px solid var(--good); }
+  .tag.none { color:var(--muted); border:1px dashed var(--line); }
+  .tag.mt { color:var(--muted); border:1px dashed var(--muted); }
+  .links a { margin-right:8px; white-space:nowrap; font-size:12px; }
+
+  /* 编辑区 */
+  tr.editor td { background:var(--accent-soft); }
+  .form-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 12px; }
+  .form-grid label { font-size:12px; color:var(--muted); }
+  .form-grid input, .form-grid textarea { width:100%; margin-top:2px; }
+  .form-grid .wide { grid-column:1 / -1; }
+  .cands { margin:10px 0; padding:8px 10px; border:1px dashed var(--muted); border-radius:8px; background:var(--card); }
+  .cands b { font-weight:500; }
+  .cands .warn { color:var(--bad); font-size:12px; }
+  .actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--text); color:var(--bg); padding:8px 16px; border-radius:8px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  #toast.show { opacity:1; }
+  #toast.err { background:var(--bad); color:#fff; }
+  @media (max-width:640px) { .form-grid { grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion: reduce) { #toast { transition:none; } }
+</style>
+</head>
+<body>
+
+<!-- 登录 -->
+<div id="login" class="card">
+  <h1 class="logo" style="margin-bottom:10px">bie<b>chile</b><small>后台</small></h1>
+  <div class="muted small" style="margin-bottom:16px">请登录</div>
+  <form id="loginForm">
+    <label for="username">账号<input id="username" autocomplete="username" required></label>
+    <label for="password">密码<input id="password" type="password" autocomplete="current-password" required></label>
+    <button class="primary" type="submit" id="loginBtn">登录</button>
+    <div class="error" id="loginError"></div>
+  </form>
+</div>
+
+<!-- 后台 -->
+<div id="app" class="wrap hidden">
+  <header>
+    <h1 class="logo">bie<b>chile</b><small>后台</small></h1>
+    <div class="right">
+      <a href="./" target="_blank" rel="noopener">打开网站</a>
+      <button type="button" id="pwToggle">修改密码</button>
+      <button type="button" id="logoutBtn">退出</button>
+    </div>
+  </header>
+
+  <div id="pwBox" class="card hidden">
+    <h2>修改密码</h2>
+    <form id="pwForm" class="bar">
+      <input id="oldPw" type="password" placeholder="原密码" autocomplete="current-password" aria-label="原密码">
+      <input id="newPw" type="password" placeholder="新密码（至少 8 位）" autocomplete="new-password" aria-label="新密码">
+      <button class="primary" type="submit">保存新密码</button>
+    </form>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="on" data-tab="firms" role="tab" aria-selected="true">企业中文名</button>
+    <button type="button" data-tab="terms" role="tab" aria-selected="false">翻译核对</button>
+  </div>
+
+  <!-- 企业中文名 -->
+  <section id="tab-firms" class="card">
+    <div class="help">
+      FDA 只公布企业英文名。这里只填<b>人工核实过</b>的中文全称，网站上会显示为"中文名（已核实）"。
+      <ul>
+        <li>核实方法：打开 FDA 企业档案看英文地址，再到国家企业信用信息公示系统、企查查或天眼查找地址和业务都对得上的公司。</li>
+        <li>保存时至少要填统一社会信用代码或来源链接，方便以后查证。</li>
+        <li>"AI 候选"是 AI 按英文名和地址猜的，只能当检索关键词，不能直接填进去。</li>
+        <li>保存后，网站会在下一次每日更新（每天早上 6:23，纽约时间）后显示。</li>
+      </ul>
+    </div>
+    <div class="bar">
+      <input id="firmSearch" type="search" placeholder="搜索英文名、中文名、城市、FEI" aria-label="搜索企业" style="flex:1; min-width:220px">
+      <label class="small" for="onlyTodo" style="display:flex; gap:6px; align-items:center"><input type="checkbox" id="onlyTodo"> 只看未核实</label>
+      <span class="muted small" id="firmCount"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>企业（FDA 原文）</th><th>被拒收</th><th>最近一次</th><th>中文名</th><th>查证</th><th></th></tr></thead>
+        <tbody id="firmRows"></tbody>
+      </table>
+    </div>
+    <div class="actions"><button type="button" id="moreFirms" class="hidden">显示更多</button></div>
+  </section>
+
+  <!-- 翻译核对 -->
+  <section id="tab-terms" class="card hidden">
+    <div class="help">
+      对照表里没有的新名称会先由 AI（Claude Haiku）自动翻译，网站上标"机翻"。在这里改好译文，点"确认"后，标记会在下一次每日更新后去掉。
+    </div>
+    <div class="bar">
+      <label class="small" for="termStatus">显示
+        <select id="termStatus">
+          <option value="machine">待核对</option>
+          <option value="verified">已核对</option>
+          <option value="all">全部</option>
+        </select>
+      </label>
+      <span class="muted small" id="termCount"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>类型</th><th>英文原文</th><th>中文译文</th><th>状态</th><th></th></tr></thead>
+        <tbody id="termRows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const SUPABASE_URL = "https://arfagbvdcooyudfyyupb.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ywWVJ6FUYDdqrBSviP09hw_EBjMm7A4";   // 公开 key；所有读写都要先登录
+const KIND_NAMES = { fda_product: "FDA 产品名", fda_industry: "FDA 行业类别", fda_code: "FDA 拒收原因" };
+const PAGE = 100;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+let token = null, firms = [], terms = [], shown = PAGE, editing = null;
+
+function store(k, v) { try { v === undefined ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} }
+function load(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+let toastTimer;
+function toast(msg, isErr) {
+  const t = $("toast"); t.textContent = msg; t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "", isErr ? 4000 : 2000);
+}
+
+async function rpc(fn, args) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(args || {}),
+  });
+  const text = await r.text();
+  if (!r.ok) {
+    let msg = text;
+    try { msg = JSON.parse(text).message || text; } catch (e) {}
+    if (/登录已过期/.test(msg)) showLogin("登录已过期，请重新登录");
+    throw new Error(msg);
+  }
+  return text ? JSON.parse(text) : null;
+}
+
+// ---------- 登录 ----------
+function showLogin(msg) {
+  token = null; store("adminToken");
+  $("app").classList.add("hidden"); $("login").classList.remove("hidden");
+  $("loginError").textContent = msg || "";
+}
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("loginBtn").disabled = true; $("loginError").textContent = "";
+  try {
+    token = await rpc("admin_login", { p_username: $("username").value.trim(), p_password: $("password").value });
+    store("adminToken", token); $("password").value = "";
+    await enterApp();
+  } catch (err) { $("loginError").textContent = err.message; }
+  $("loginBtn").disabled = false;
+});
+$("logoutBtn").addEventListener("click", async () => {
+  try { await rpc("admin_logout", { p_token: token }); } catch (e) {}
+  showLogin();
+});
+async function enterApp() {
+  await Promise.all([loadFirms(), loadTerms()]);
+  $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+}
+
+// ---------- 修改密码 ----------
+$("pwToggle").addEventListener("click", () => $("pwBox").classList.toggle("hidden"));
+$("pwForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  try {
+    await rpc("admin_change_password", { p_token: token, p_old: $("oldPw").value, p_new: $("newPw").value });
+    $("oldPw").value = ""; $("newPw").value = ""; $("pwBox").classList.add("hidden");
+    toast("密码已修改");
+  } catch (err) { toast(err.message, true); }
+});
+
+// ---------- 标签页 ----------
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tabs button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-selected", x === b); });
+  $("tab-firms").classList.toggle("hidden", b.dataset.tab !== "firms");
+  $("tab-terms").classList.toggle("hidden", b.dataset.tab !== "terms");
+}));
+
+// ---------- 企业中文名 ----------
+async function loadFirms() {
+  firms = await rpc("admin_firms", { p_token: token, p_limit: 2000 });
+  renderFirms();
+}
+function firmView() {
+  const q = $("firmSearch").value.trim().toLowerCase(), todo = $("onlyTodo").checked;
+  return firms.filter(f => {
+    if (todo && f.zh_name) return false;
+    if (!q) return true;
+    return [f.firm_en, f.zh_name, f.city, f.fei].join(" ").toLowerCase().includes(q);
+  });
+}
+function searchLinks(f) {
+  const g = encodeURIComponent(`"${f.firm_en}" ${f.city || ""} China`);
+  return `<span class="links"><a href="${esc(f.profile_url)}" target="_blank" rel="noopener">FDA 档案</a>` +
+    `<a href="https://www.google.com/search?q=${g}" target="_blank" rel="noopener">Google</a>` +
+    `<a href="https://www.gsxt.gov.cn/" target="_blank" rel="noopener">信用公示系统</a></span>`;
+}
+function candLinks(name) {
+  const k = encodeURIComponent(name);
+  return `<span class="links"><a href="https://www.qcc.com/web/search?key=${k}" target="_blank" rel="noopener">企查查</a>` +
+    `<a href="https://www.tianyancha.com/search?key=${k}" target="_blank" rel="noopener">天眼查</a></span>`;
+}
+function renderFirms() {
+  const view = firmView(), done = firms.filter(f => f.zh_name).length;
+  const total = firms.length >= 2000 ? "被拒收最多的前 2000 家" : `共 ${firms.length} 家`;
+  $("firmCount").textContent = `${total}，已核实 ${done} 家，当前显示 ${Math.min(shown, view.length)} / ${view.length}`;
+  $("moreFirms").classList.toggle("hidden", view.length <= shown);
+  $("firmRows").innerHTML = view.slice(0, shown).map(f => {
+    const rank = firms.indexOf(f) + 1;
+    const zh = f.zh_name
+      ? `<span class="tag ok">已核实</span> ${esc(f.zh_name)}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
+      : `<span class="tag none">未核实</span>`;
+    let row = `<tr data-fei="${esc(f.fei)}">
+      <td class="num">${rank}</td>
+      <td><b>${esc(f.firm_en)}</b><div class="small muted">${esc(f.city || "")} · FEI ${esc(f.fei)}</div></td>
+      <td class="num">${f.lines} 行<div class="small muted">${f.shipments} 批</div></td>
+      <td class="num">${esc(f.last_date)}<div class="small muted">${esc(f.last_product || "")}</div></td>
+      <td>${zh}</td>
+      <td>${searchLinks(f)}</td>
+      <td><button type="button" data-edit="${esc(f.fei)}">${f.zh_name ? "修改" : "核实"}</button></td>
+    </tr>`;
+    if (editing === f.fei) row += editorRow(f);
+    return row;
+  }).join("") || `<tr><td colspan="7" class="muted">没有符合条件的企业。</td></tr>`;
+}
+function editorRow(f) {
+  const cands = Array.isArray(f.candidates) && f.candidates.length
+    ? `<div class="cands"><div class="warn">AI 猜测，只能当检索关键词，不能直接填写。</div>` +
+      (f.address ? `<div class="small muted">FDA 登记地址：${esc(f.address)}</div>` : "") +
+      f.candidates.map(c => `<div><b>${esc(c.name)}</b> <span class="small muted">${esc(c.reason || "")}</span> ${candLinks(c.name)}</div>`).join("") +
+      `</div>`
+    : `<div class="cands small muted">还没有 AI 候选（每日任务会给被拒收最多的企业逐步生成）。</div>`;
+  const id = s => `ed-${s}`;
+  return `<tr class="editor"><td></td><td colspan="6">
+    ${cands}
+    <form class="form-grid" data-save="${esc(f.fei)}">
+      <label for="${id("zh")}">中文全称（核实过的）<input id="${id("zh")}" name="zh" value="${esc(f.zh_name || "")}" required></label>
+      <label for="${id("code")}">统一社会信用代码<input id="${id("code")}" name="code" value="${esc(f.credit_code || "")}" maxlength="18"></label>
+      <label class="wide" for="${id("url")}">来源链接<input id="${id("url")}" name="url" type="url" value="${esc(f.source_url || "")}" placeholder="https://..."></label>
+      <label class="wide" for="${id("note")}">备注（怎么核实的）<textarea id="${id("note")}" name="note" rows="2">${esc(f.note || "")}</textarea></label>
+      <div class="actions wide">
+        <button type="submit" class="primary">保存为已核实</button>
+        <button type="button" data-cancel>取消</button>
+        ${f.zh_name ? `<button type="button" class="danger" data-delete="${esc(f.fei)}">删除中文名</button>` : ""}
+      </div>
+    </form>
+  </td></tr>`;
+}
+$("firmRows").addEventListener("click", async e => {
+  const ed = e.target.closest("[data-edit]"), cancel = e.target.closest("[data-cancel]"), del = e.target.closest("[data-delete]");
+  if (ed) { editing = editing === ed.dataset.edit ? null : ed.dataset.edit; renderFirms(); const z = $("ed-zh"); if (z) z.focus(); }
+  if (cancel) { editing = null; renderFirms(); }
+  if (del) {
+    try { await rpc("admin_delete_firm", { p_token: token, p_fei: del.dataset.delete }); editing = null; await loadFirms(); toast("已删除"); }
+    catch (err) { toast(err.message, true); }
+  }
+});
+$("firmRows").addEventListener("submit", async e => {
+  const form = e.target.closest("form[data-save]"); if (!form) return;
+  e.preventDefault();
+  const f = firms.find(x => x.fei === form.dataset.save), d = new FormData(form);
+  try {
+    await rpc("admin_save_firm", { p_token: token, p_fei: f.fei, p_firm_en: f.firm_en, p_zh: d.get("zh"),
+      p_credit_code: d.get("code"), p_source_url: d.get("url"), p_note: d.get("note") });
+    editing = null; await loadFirms(); toast("已保存");
+  } catch (err) { toast(err.message, true); }
+});
+$("firmSearch").addEventListener("input", () => { shown = PAGE; renderFirms(); });
+$("onlyTodo").addEventListener("change", () => { shown = PAGE; renderFirms(); });
+$("moreFirms").addEventListener("click", () => { shown += PAGE; renderFirms(); });
+
+// ---------- 翻译核对 ----------
+async function loadTerms() {
+  terms = await rpc("admin_terms", { p_token: token, p_status: $("termStatus").value });
+  renderTerms();
+}
+function renderTerms() {
+  $("termCount").textContent = `共 ${terms.length} 条`;
+  $("termRows").innerHTML = terms.map((t, i) => `<tr>
+    <td class="small">${esc(KIND_NAMES[t.kind] || t.kind)}</td>
+    <td>${esc(t.source)}</td>
+    <td><input id="term-${i}" value="${esc(t.zh)}" aria-label="中文译文" style="width:100%; min-width:200px"></td>
+    <td>${t.status === "verified" ? '<span class="tag ok">已核对</span>' : '<span class="tag mt">机翻</span>'}</td>
+    <td><button type="button" class="primary" data-term="${i}">确认</button></td>
+  </tr>`).join("") || `<tr><td colspan="5" class="muted">没有需要核对的翻译。</td></tr>`;
+}
+$("termStatus").addEventListener("change", () => loadTerms().catch(err => toast(err.message, true)));
+$("termRows").addEventListener("click", async e => {
+  const b = e.target.closest("[data-term]"); if (!b) return;
+  const t = terms[+b.dataset.term];
+  try {
+    await rpc("admin_save_term", { p_token: token, p_kind: t.kind, p_source: t.source, p_zh: $("term-" + b.dataset.term).value });
+    await loadTerms(); toast("已确认");
+  } catch (err) { toast(err.message, true); }
+});
+
+// ---------- 启动 ----------
+token = load("adminToken");
+if (token) enterApp().catch(() => showLogin());
+</script>
+</body>
+</html>

@@ -9,7 +9,7 @@ import sys
 import traceback
 from datetime import date, timedelta
 
-from . import db, export, mt, normalize, sources
+from . import db, export, firms, mt, normalize, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
 
@@ -79,6 +79,15 @@ def main():
             except Exception:
                 failed = True
                 db.log_run("US", 0, 0, "error", traceback.format_exc())
+
+        # AI candidate Chinese names for top firms (admin page only); a failure here does not fail the run
+        if "us" not in a.skip:
+            try:
+                n = firms.generate_candidates()
+                if n:
+                    db.log_run("firms", n, n, "ok", "AI candidate names for admin review")
+            except Exception:
+                db.log_run("firms", 0, 0, "error", traceback.format_exc())
 
         new_terms = {k: sorted(v) for k, v in normalize.untranslated.items() if v}
         if new_terms:
