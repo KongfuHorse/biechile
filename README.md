@@ -8,6 +8,11 @@
 |---|---|---|
 | TW | 台湾食品药物管理署 边境检验不符合食品资讯 | 逐条读取详情页 |
 | US | 美国 FDA Data Dashboard 进口拒收（Import Refusals） | 官方 API，需要 key |
+| JP | 日本厚生劳动省 输入食品等の食品卫生法违反事例（进口时） | 每个财年一个 Excel，每月更新 |
+| EU | 欧盟 RASFF Window 公开通报，原产国为中国 | 公开 JSON 接口，不需要 key；没有企业名 |
+| KR | 韩国食药处 进口食品不合格（수입식품부적합） | 读取列表网页；官方只保留约半年，每天保存 |
+
+日本、欧盟、韩国的产品名、问题描述用 Claude Haiku 翻译并归类问题类型，存在 `term_translations`（kind 为 `jp_*`、`eu_*`、`kr_*`），网站标"机翻"，可以在后台"翻译核对"里修改。
 
 ## 结构
 
@@ -30,12 +35,12 @@ site/             网站（GitHub Pages 发布这个目录）
 
 GitHub Actions 每天跑一次：
 
-1. 抓台湾新增的通报，抓 FDA 最近 30 天的拒收记录
+1. 抓台湾新增的通报，FDA 最近 30 天，日本最近 60 天，欧盟最近 30 天，韩国官网现有的全部中国记录
 2. 写进 Supabase（按记录编号去重）
 3. 从 Supabase 导出 `site/data/*.json`
 4. 部署到 GitHub Pages
 
-手动补历史数据：Actions → Daily update and deploy → Run workflow，填起始日期（如 `2023-01-01`）。
+手动补历史数据：Actions → Daily update and deploy → Run workflow，填起始日期（如 `2023-01-01`）。只补某几个来源时，在 skip 里填不需要的来源，例如 `tw us`。
 
 ## 需要的设置
 

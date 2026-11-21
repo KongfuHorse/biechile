@@ -2,6 +2,7 @@
   python -m pipeline.run                     # daily update: new TW notices + FDA last 30 days, then export
   python -m pipeline.run --since 2023-01-01  # backfill from a date
   python -m pipeline.run --export-only       # only rebuild the website JSON files
+  python -m pipeline.run --skip tw us        # skip sources: tw us jp eu kr
 """
 import argparse
 import os
@@ -9,7 +10,7 @@ import sys
 import traceback
 from datetime import date, timedelta
 
-from . import db, export, firms, mt, normalize, sources
+from . import db, eu, export, firms, jp, kr, mt, normalize, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
 
@@ -40,11 +41,36 @@ def translate_new_terms():
     return total
 
 
+# Japan, EU and Korea: fetch, translate new text with Claude, store
+INTL = {
+    "jp": {"days": 60, "fetch": lambda since: jp.fetch(since), "norm": jp.normalize,
+           "product": lambda r: r["product"], "detail": lambda r: r.get("violation")},
+    "eu": {"days": 30, "fetch": lambda since: eu.fetch(since), "norm": eu.normalize,
+           "product": lambda r: eu.product_text(r) or eu.subject(r), "detail": eu.subject},
+    "kr": {"days": None, "fetch": lambda since: kr.fetch(), "norm": kr.normalize,
+           "product": kr.product_text, "detail": lambda r: r["violation"]},
+}
+
+
+def run_intl(key, since_arg, cache):
+    cfg = INTL[key]
+    since = since_arg or (date.today() - timedelta(days=cfg["days"] or 0)).isoformat()
+    raw = cfg["fetch"](since)
+    tr = mt.prepare(key.upper(), raw, cfg["product"], cfg["detail"], cache)
+    recs = [cfg["norm"](r, tr(r)) for r in raw]
+    recs = list({r["id"]: r for r in recs}.values())
+    if since_arg:
+        recs = [r for r in recs if r["pub_date"] >= since_arg]
+    n = db.upsert(recs)
+    untranslated = sum(1 for r in recs if not r["machine_translated"])
+    db.log_run(key.upper(), len(raw), n, "ok", f"since={since} untranslated={untranslated}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", help="backfill start date YYYY-MM-DD")
     ap.add_argument("--export-only", action="store_true")
-    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us")
+    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr")
     a = ap.parse_args()
     print("storage:", "Supabase" if db.using_supabase() else "local file")
     failed = False
@@ -79,6 +105,19 @@ def main():
             except Exception:
                 failed = True
                 db.log_run("US", 0, 0, "error", traceback.format_exc())
+
+        # Japan, EU, Korea
+        cache = None
+        for key in ("jp", "eu", "kr"):
+            if key in a.skip:
+                continue
+            try:
+                if cache is None:
+                    cache = mt.load_cache()
+                run_intl(key, a.since, cache)
+            except Exception:
+                failed = True
+                db.log_run(key.upper(), 0, 0, "error", traceback.format_exc())
 
         # AI candidate Chinese names for top firms (admin page only); a failure here does not fail the run
         if "us" not in a.skip:

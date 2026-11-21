@@ -243,7 +243,7 @@ def normalize_tw(r):
         "quantity": tw_zh(r.get("quantity")), "firm": tw_zh(r.get("manufacturer")),
         "importer": tw_zh(re.sub(r"^\d+\s*", "", r.get("importer") or "")),
         "lab_tested": True, "entry_no": "", "action": tw_zh(r.get("action")), "url": r["url"], "raw": r,
-        "machine_translated": False,
+        "machine_translated": False, "ntype": None, "note": "",
     }
 
 
@@ -299,7 +299,7 @@ def normalize_fda(r):
         "id": f"US-{r['ShipmentID']}-{r['RefusalDate']}", "src": "US",
         "pub_date": r["RefusalDate"], "insp_date": None,
         "grp": grp, "ind": ind_zh,
-        "product": product, "product_orig": pdesc, "machine_translated": machine,
+        "product": product, "product_orig": pdesc, "machine_translated": machine, "ntype": None, "note": "",
         "problems": sorted(set(probs)) or ["其他"], "detail": "；".join(reasons),
         "legal_limit": "", "quantity": "", "firm": (r.get("FirmName") or "").strip(), "importer": "",
         "lab_tested": yes(r.get("FDASampleAnalysis")) or yes(r.get("PrivateLabAnalysis")),

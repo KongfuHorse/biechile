@@ -157,7 +157,7 @@
   <!-- 翻译核对 -->
   <section id="tab-terms" class="card hidden">
     <div class="help">
-      对照表里没有的新名称会先由 AI（Claude Haiku）自动翻译，网站上标"机翻"。在这里改好译文，点"确认"后，标记会在下一次每日更新后去掉。
+      对照表里没有的新名称，以及日本、欧盟、韩国的内容，会先由 AI（Claude Haiku）自动翻译，网站上标"机翻"。在这里改好译文，点"确认"后，标记会在下一次每日更新后去掉。"问题类型"一行填中文类型名，多个用竖线 | 隔开，例如：农药残留|污染物。
     </div>
     <div class="bar">
       <label class="small" for="termStatus">显示
@@ -183,7 +183,10 @@
 <script>
 const SUPABASE_URL = "https://arfagbvdcooyudfyyupb.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ywWVJ6FUYDdqrBSviP09hw_EBjMm7A4";   // 公开 key；所有读写都要先登录
-const KIND_NAMES = { fda_product: "FDA 产品名", fda_industry: "FDA 行业类别", fda_code: "FDA 拒收原因" };
+const KIND_NAMES = { fda_product: "FDA 产品名", fda_industry: "FDA 行业类别", fda_code: "FDA 拒收原因",
+  jp_product: "日本 产品名", jp_detail: "日本 违规内容", jp_prob: "日本 问题类型",
+  eu_product: "欧盟 产品名", eu_detail: "欧盟 通报标题", eu_prob: "欧盟 问题类型",
+  kr_product: "韩国 产品名", kr_detail: "韩国 违规内容", kr_prob: "韩国 问题类型" };
 const PAGE = 100;
 
 const $ = id => document.getElementById(id);

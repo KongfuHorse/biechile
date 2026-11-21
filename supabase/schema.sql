@@ -51,3 +51,7 @@ grant usage on schema public to service_role;
 grant select, insert, update, delete on public.records to service_role;
 grant select, insert, update, delete on public.runs to service_role;
 grant usage, select on sequence public.runs_id_seq to service_role;
+
+-- added for Japan, EU and Korea sources
+alter table records add column if not exists ntype text;   -- notification type (EU), e.g. 边境拒绝
+alter table records add column if not exists note text;    -- extra info: notifying country, risk, inspection office

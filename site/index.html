@@ -19,6 +19,9 @@
   --accent: #0f5c6e;
   --us: #3d5d9c;
   --tw: #2c8570;
+  --jp: #b5475b;
+  --eu: #7058b8;
+  --kr: #8a6d1f;
   --crit: #b3261e;
   --warn: #a8640a;
   --calm: #8a949e;
@@ -30,13 +33,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-    --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+    --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-  --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+  --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
   color-scheme: dark;
 }
 
@@ -55,7 +58,7 @@ h1 { font-family: var(--font-display); font-size: 28px; line-height: 1.25; margi
 .src-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--chip); color: var(--muted); border: 1px solid transparent; }
 .src-chip.on { color: var(--ink); border-color: var(--line); background: var(--surface); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--calm); }
-.dot.us { background: var(--us); } .dot.tw { background: var(--tw); }
+.dot.us { background: var(--us); } .dot.tw { background: var(--tw); } .dot.jp { background: var(--jp); } .dot.eu { background: var(--eu); } .dot.kr { background: var(--kr); }
 .src-chip .soon { font-size: 12px; }
 
 main .wrap { display: grid; gap: 20px; padding-top: 20px; padding-bottom: 40px; }
@@ -109,6 +112,10 @@ td.date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--
 .pill { display: inline-block; font-size: 12px; line-height: 1.5; padding: 0 7px; border-radius: 4px; white-space: nowrap; }
 .pill.us { color: var(--us); border: 1px solid var(--us); }
 .pill.tw { color: var(--tw); border: 1px solid var(--tw); }
+.pill.jp { color: var(--jp); border: 1px solid var(--jp); }
+.pill.eu { color: var(--eu); border: 1px solid var(--eu); }
+.pill.kr { color: var(--kr); border: 1px solid var(--kr); }
+.pill.nt { background: var(--chip); color: var(--muted); font-weight: 400; }
 .pill.prob { background: var(--chip); color: var(--ink); }
 .pill.prob.crit { color: var(--crit); }
 .pill.prob.warn { color: var(--warn); }
@@ -172,7 +179,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
           <select id="f-period"><option value="12m">最近 12 个月</option></select>
         </label>
         <label class="field" for="f-src">通报来源
-          <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option></select>
+          <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option></select>
         </label>
         <label class="field" for="f-grp">产品类别
           <select id="f-grp"></select>
@@ -190,7 +197,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 
     <section class="tiles" aria-label="汇总">
       <div class="tile"><span class="lbl">通报记录</span><span class="num" id="t-rec">0</span><span class="sub" id="t-rec-sub"></span></div>
-      <div class="tile"><span class="lbl">货物批次</span><span class="num" id="t-ship">0</span><span class="sub">美国按报关单去重</span></div>
+      <div class="tile"><span class="lbl">货物批次</span><span class="num" id="t-ship">0</span><span class="sub">美国按报关单去重，其他每条算一批</span></div>
       <div class="tile"><span class="lbl">涉及企业</span><span class="num" id="t-firm">0</span><span class="sub">生产商或出口商</span></div>
       <div class="tile"><span class="lbl">有实验室检测</span><span class="num" id="t-lab">0%</span><span class="sub" id="t-lab-sub"></span></div>
     </section>
@@ -198,7 +205,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     <section class="charts">
       <div class="panel">
         <h2>按月份</h2>
-        <div class="legend"><span><i class="dot us"></i>美国 FDA</span><span><i class="dot tw"></i>台湾 TFDA</span></div>
+        <div class="legend" id="legend"></div>
         <div id="chart-month"></div>
         <p class="note" id="month-note"></p>
       </div>
@@ -233,9 +240,12 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <li>美国 FDA 按货物明细行记录，一票货可能有多行。"货物批次"按报关单号去重计算。</li>
         <li>FDA 的拒收不一定经过化验。很多是依据进口警报、标签或注册手续直接拒收，文书用语是"appears to"（看起来）。"检测"一栏只标出有 FDA 或私人实验室化验记录的。</li>
         <li>台湾的记录都是边境抽样检验的结果。"食品接触材料"指餐具、烘焙纸、砧板等容器具。</li>
-        <li>条数多不等于问题率高。中国对美国和台湾的出口量很大，不合格率需要结合进口总批数来看。</li>
+        <li>日本的记录来自厚生劳动省每月公布的进口时违反事例，都是检疫所检验不合格的货物。</li>
+        <li>欧盟 RASFF 包括两类：口岸检查发现的"边境拒绝"，和在市场上抽检发现后发出的预警、信息通报。来源一栏标明了类型。欧盟公开数据不包含企业名称和品牌。</li>
+        <li>韩国食药处的进口不合格名单只公开最近约半年（本站最早的韩国记录是 2026 年 5 月），本站每天保存新记录，更早的无法补齐。</li>
+        <li>条数多不等于问题率高。中国的出口量很大，不合格率需要结合进口总批数来看。</li>
         <li>FDA 只公布企业英文名。中文名只在人工核实（对照工商登记信息）后显示，标"已核实"。</li>
-        <li>FDA 产品名称和拒收原因由我们翻译成中文。新出现的名称先用 AI 自动翻译，标有"机翻"，人工核对后去掉标记。以英文原文为准。</li>
+        <li>FDA 产品名称和拒收原因由我们翻译成中文。新出现的名称先用 AI 自动翻译，标有"机翻"，人工核对后去掉标记。日本、欧盟、韩国的内容也是 AI 翻译，问题类型由 AI 归类。一切以官方原文为准。</li>
         <li>左侧色条：红色是健康风险类（农药、兽药残留，污染物，微生物）；橙色是添加剂、材质、卫生生产类；灰色是标签、手续类。</li>
       </ul>
     </section>
@@ -249,7 +259,11 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
   var FOOD = ["食品", "膳食补充剂", "食品接触材料"];
   var CRIT = ["农药残留", "兽药残留", "污染物", "微生物"];
   var WARN = ["色素/添加剂", "材质/溶出", "卫生/生产"];
-  var SOON = ["欧盟 RASFF", "日本 厚生劳动省", "韩国 食药处", "新加坡 SFA", "泰国 FDA", "越南"];
+  var SOON = ["新加坡 SFA", "泰国 FDA", "越南"];
+  var SRC = ["US", "TW", "JP", "EU", "KR"];
+  var SRC_NAME = { US: "美国", TW: "台湾", JP: "日本", EU: "欧盟", KR: "韩国" };
+  var SRC_FULL = { US: "美国 FDA", TW: "台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处" };
+  var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文" };
   var PER = 30;
   var all = [], meta = null, view = [], page = 1, cache = {}, range = { from: "", to: "" };
   var st = { scope: "food", src: "", grp: "", prob: "", q: "", lab: false, period: "12m" };
@@ -295,7 +309,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       if (st.prob && r.prob.indexOf(st.prob) === -1) return false;
       if (st.lab && !r.lab) return false;
       if (q) {
-        var hay = (r.p + " " + (r.p0 || "") + " " + r.ind + " " + r.f + " " + (r.fz || "") + " " + r.imp + " " + r.x + " " + r.grp).toLowerCase();
+        var hay = (r.p + " " + (r.p0 || "") + " " + r.ind + " " + r.f + " " + (r.fz || "") + " " + r.imp + " " + r.x + " " + r.grp + " " + (r.o || "") + " " + (r.nt || "")).toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
       return true;
@@ -306,15 +320,17 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 
   function renderTiles() {
     var us = view.filter(function (r) { return r.src === "US"; });
-    var tw = view.length - us.length;
+    var others = view.length - us.length;
+    var per = {};
+    view.forEach(function (r) { per[r.src] = (per[r.src] || 0) + 1; });
     var entries = {};
     us.forEach(function (r) { entries[r.e] = 1; });
     var firms = {};
     view.forEach(function (r) { if (r.f) firms[r.f.toLowerCase()] = 1; });
     var lab = view.filter(function (r) { return r.lab; }).length;
     $("t-rec").textContent = fmt(view.length);
-    $("t-rec-sub").textContent = "美国 " + fmt(us.length) + " · 台湾 " + fmt(tw);
-    $("t-ship").textContent = fmt(Object.keys(entries).length + tw);
+    $("t-rec-sub").textContent = SRC.filter(function (k) { return per[k]; }).map(function (k) { return SRC_NAME[k] + " " + fmt(per[k]); }).join(" · ");
+    $("t-ship").textContent = fmt(Object.keys(entries).length + others);
     $("t-firm").textContent = fmt(Object.keys(firms).length);
     $("t-lab").textContent = view.length ? Math.round(lab / view.length * 100) + "%" : "0%";
     $("t-lab-sub").textContent = fmt(lab) + " 条有化验记录";
@@ -334,11 +350,14 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 
   function renderMonth() {
     var ms = months(), data = ms.map(function (k) {
-      var u = 0, t = 0;
-      view.forEach(function (r) { if (r.d.slice(0, 7) === k) { if (r.src === "US") u++; else t++; } });
-      return { k: k, u: u, t: t };
+      var c = { k: k, n: 0 };
+      SRC.forEach(function (x) { c[x] = 0; });
+      view.forEach(function (r) { if (r.d.slice(0, 7) === k) { c[r.src] = (c[r.src] || 0) + 1; c.n++; } });
+      return c;
     });
-    var max = Math.max.apply(null, data.map(function (d) { return d.u + d.t; }).concat([1]));
+    var shown = SRC.filter(function (x) { return data.some(function (d) { return d[x]; }); });
+    $("legend").innerHTML = shown.map(function (x) { return '<span><i class="dot ' + x.toLowerCase() + '"></i>' + SRC_FULL[x] + "</span>"; }).join("");
+    var max = Math.max.apply(null, data.map(function (d) { return d.n; }).concat([1]));
     var step = max <= 10 ? 2 : max <= 50 ? 10 : max <= 150 ? 25 : max <= 300 ? 50 : 100;
     var top = Math.ceil(max / step) * step;
     var W = 520, H = 210, L = 36, B = 26, T = 14, R = 8;
@@ -350,12 +369,14 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       s += '<text x="' + (L - 6) + '" y="' + (y(g) + 4) + '" font-size="11" text-anchor="end">' + g + "</text>";
     }
     data.forEach(function (d, i) {
-      var x = L + i * cw + (cw - bw) / 2;
-      var yu = y(d.u), yt = y(d.u + d.t);
-      if (d.u) s += '<rect x="' + x + '" y="' + yu + '" width="' + bw + '" height="' + (y(0) - yu) + '" fill="var(--us)"><title>' + d.k + " 美国 " + d.u + "</title></rect>";
-      if (d.t) s += '<rect x="' + x + '" y="' + yt + '" width="' + bw + '" height="' + (yu - yt) + '" fill="var(--tw)"><title>' + d.k + " 台湾 " + d.t + "</title></rect>";
-      var tot = d.u + d.t;
-      if (tot && data.length <= 13) s += '<text x="' + (x + bw / 2) + '" y="' + (yt - 4) + '" font-size="11" text-anchor="middle" style="fill:var(--ink)">' + tot + "</text>";
+      var x = L + i * cw + (cw - bw) / 2, base = 0;
+      shown.forEach(function (k) {
+        if (!d[k]) return;
+        var y0 = y(base), y1 = y(base + d[k]);
+        s += '<rect x="' + x + '" y="' + y1 + '" width="' + bw + '" height="' + Math.max(0, y0 - y1 - (base ? 1 : 0)) + '" fill="var(--' + k.toLowerCase() + ')"><title>' + d.k + " " + SRC_NAME[k] + " " + d[k] + "</title></rect>";
+        base += d[k];
+      });
+      if (d.n && data.length <= 13) s += '<text x="' + (x + bw / 2) + '" y="' + (y(d.n) - 4) + '" font-size="11" text-anchor="middle" style="fill:var(--ink)">' + d.n + "</text>";
       var mo = +d.k.slice(5), many = data.length > 13;
       if (!many || mo === 1 || mo === 7) {
         var lab = many ? d.k.slice(2, 4) + "/" + mo : mo + "月";
@@ -392,13 +413,15 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       var det = '<div class="detail">' + esc(r.x) + "</div>";
       if (r.lim) det += '<div class="small">限量：' + esc(r.lim) + "</div>";
       if (r.q) det += '<div class="small">数量：' + esc(r.q) + " · " + esc(r.act) + "</div>";
-      var firm = esc(r.f) + (r.fz ? '<div class="small">中文名：' + esc(r.fz) + "（已核实）</div>" : "") +
+      else if (r.act) det += '<div class="small">处理：' + esc(r.act) + "</div>";
+      if (r.o) det += '<div class="small">' + esc(r.o) + "</div>";
+      var firm = (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">中文名：' + esc(r.fz) + "（已核实）</div>" : "") +
         (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
-      var link = r.src === "TW" ? "TFDA 原文" : "FDA 企业档案";
+      var link = LINK[r.src] || "原文";
       return '<tr class="sev-' + sev(r.prob) + '">' +
         '<td class="date" data-k="日期">' + esc(r.d) + "</td>" +
-        '<td data-k="来源"><span class="pill ' + r.src.toLowerCase() + '">' + (r.src === "US" ? "美国" : "台湾") + "</span></td>" +
+        '<td data-k="来源"><span class="pill ' + r.src.toLowerCase() + '">' + (SRC_NAME[r.src] || r.src) + "</span>" + (r.nt ? '<div><span class="pill nt">' + esc(r.nt) + "</span></div>" : "") + "</td>" +
         '<td><div class="prod">' + esc(r.p) + (r.mt ? '<span class="pill mt" title="机器翻译，待人工核对">机翻</span>' : "") + '</div><div class="small">' + cat + "</div></td>" +
         '<td><div class="pills">' + probs + "</div>" + det + "</td>" +
         '<td class="firm" data-k="企业">' + firm + "</td>" +
