@@ -114,6 +114,7 @@ td.date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--
 .pill.prob.warn { color: var(--warn); }
 .pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
 .prod { font-weight: 500; }
+.pill.mt { border: 1px dashed var(--calm); color: var(--muted); font-weight: 400; margin-left: 4px; }
 .small { font-size: 12px; color: var(--muted); }
 .detail { font-size: 13px; overflow-wrap: anywhere; }
 .firm { font-size: 13px; overflow-wrap: anywhere; min-width: 140px; }
@@ -233,6 +234,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <li>FDA 的拒收不一定经过化验。很多是依据进口警报、标签或注册手续直接拒收，文书用语是"appears to"（看起来）。"检测"一栏只标出有 FDA 或私人实验室化验记录的。</li>
         <li>台湾的记录都是边境抽样检验的结果。"食品接触材料"指餐具、烘焙纸、砧板等容器具。</li>
         <li>条数多不等于问题率高。中国对美国和台湾的出口量很大，不合格率需要结合进口总批数来看。</li>
+        <li>FDA 产品名称和拒收原因由我们翻译成中文。新出现的名称先用 AI 自动翻译，标有"机翻"，人工核对后去掉标记。以英文原文为准。</li>
         <li>左侧色条：红色是健康风险类（农药、兽药残留，污染物，微生物）；橙色是添加剂、材质、卫生生产类；灰色是标签、手续类。</li>
       </ul>
     </section>
@@ -395,7 +397,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       return '<tr class="sev-' + sev(r.prob) + '">' +
         '<td class="date" data-k="日期">' + esc(r.d) + "</td>" +
         '<td data-k="来源"><span class="pill ' + r.src.toLowerCase() + '">' + (r.src === "US" ? "美国" : "台湾") + "</span></td>" +
-        '<td><div class="prod">' + esc(r.p) + '</div><div class="small">' + cat + "</div></td>" +
+        '<td><div class="prod">' + esc(r.p) + (r.mt ? '<span class="pill mt" title="机器翻译，待人工核对">机翻</span>' : "") + '</div><div class="small">' + cat + "</div></td>" +
         '<td><div class="pills">' + probs + "</div>" + det + "</td>" +
         '<td class="firm" data-k="企业">' + firm + "</td>" +
         '<td data-k="检测">' + (r.lab ? '<span class="lab-yes">有化验</span>' : '<span class="lab-no">未化验</span>') + "</td>" +

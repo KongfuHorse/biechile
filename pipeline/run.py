@@ -9,9 +9,35 @@ import sys
 import traceback
 from datetime import date, timedelta
 
-from . import db, export, normalize, sources
+from . import db, export, mt, normalize, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
+
+
+def translate_new_terms():
+    """Ask Claude for terms missing from the reference tables, save them, and add them to normalize.MT."""
+    examples = {
+        "fda_product": normalize._fda_product_zh,
+        "fda_industry": normalize.IND_ZH,
+        "fda_code": {normalize.CODE_TEXT[c]: zh for c, (zh, _) in normalize.FDA_CODE.items() if c in normalize.CODE_TEXT},
+    }
+    total = 0
+    for kind, terms in normalize.untranslated.items():
+        terms = sorted(t for t in terms if t)
+        if not terms:
+            continue
+        if kind == "fda_code":  # translate the statement text, store under the code
+            by_text = {f"{c}: {normalize.CODE_TEXT.get(c, c)}": c for c in terms}
+            got = mt.translate(kind, list(by_text), examples[kind])
+            mapping = {by_text[t]: zh for t, zh in got.items()}
+        else:
+            mapping = mt.translate(kind, terms, examples[kind])
+        mt.save(kind, mapping)
+        normalize.MT[kind].update(mapping)
+        total += len(mapping)
+    for v in normalize.untranslated.values():
+        v.clear()
+    return total
 
 
 def main():
@@ -40,8 +66,16 @@ def main():
             try:
                 since = a.since or (date.today() - timedelta(days=30)).isoformat()
                 raw = sources.fetch_fda(since)
-                n = db.upsert([normalize.normalize_fda(r) for r in raw])
-                db.log_run("US", len(raw), n, "ok", f"since={since}")
+                for kind, m in mt.load_cache().items():
+                    normalize.MT.setdefault(kind, {}).update(m)
+                recs = [normalize.normalize_fda(r) for r in raw]
+                note = f"since={since}"
+                if any(normalize.untranslated.values()) and mt.available():
+                    done = translate_new_terms()
+                    note += f" machine_translated={done}"
+                    recs = [normalize.normalize_fda(r) for r in raw]
+                n = db.upsert(recs)
+                db.log_run("US", len(raw), n, "ok", note)
             except Exception:
                 failed = True
                 db.log_run("US", 0, 0, "error", traceback.format_exc())

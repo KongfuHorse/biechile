@@ -196,8 +196,14 @@ _cc = opencc.OpenCC("tw2sp")
 _fda_product_zh = json.load(open(os.path.join(REF, "fda_product_zh.json"), encoding="utf-8"))
 _charges = {c["ASC_ID"].strip(): c for c in csv.DictReader(open(os.path.join(REF, "fda_charges.csv"), encoding="utf-8-sig"))}
 
-# collected during a run so new terms can be reviewed by hand
+# collected during a run so new terms can be reviewed by hand (or machine translated)
 untranslated = {"fda_product": set(), "fda_industry": set(), "fda_code": set()}
+
+# machine translations loaded from the term_translations table: {kind: {source: zh}}
+MT = {"fda_product": {}, "fda_industry": {}, "fda_code": {}}
+
+# code -> English charge statement, used when asking for a machine translation
+CODE_TEXT = {c["CHRG_CODE"].strip(): (c["CHRG_STMNT_TEXT"] or "").strip() for c in _charges.values()}
 
 
 def tw_zh(text):
@@ -237,6 +243,7 @@ def normalize_tw(r):
         "quantity": tw_zh(r.get("quantity")), "firm": tw_zh(r.get("manufacturer")),
         "importer": tw_zh(re.sub(r"^\d+\s*", "", r.get("importer") or "")),
         "lab_tested": True, "entry_no": "", "action": tw_zh(r.get("action")), "url": r["url"], "raw": r,
+        "machine_translated": False,
     }
 
 
@@ -255,7 +262,7 @@ def fda_group(pc):
 
 def normalize_fda(r):
     """r: one row from the FDA import_refusals API"""
-    reasons, probs = [], []
+    reasons, probs, machine = [], [], False
     for i in [x.strip() for x in (r.get("RefusalCharges") or "").split(",") if x.strip()]:
         c = _charges.get(i)
         if not c:
@@ -264,15 +271,26 @@ def normalize_fda(r):
         if code in FDA_CODE:
             zh, pr = FDA_CODE[code]
         else:
-            untranslated["fda_code"].add(code)
-            zh, pr = code, ("标签" if "MISBRAND" in (c["SCTN_NAME"] or "").upper() else "其他")
+            pr = "标签" if "MISBRAND" in (c["SCTN_NAME"] or "").upper() else "其他"
+            if code in MT["fda_code"]:
+                zh = MT["fda_code"][code]; machine = True
+            else:
+                untranslated["fda_code"].add(code); zh = code
         reasons.append(f"{zh} [{code}]"); probs.append(pr)
     pdesc = (r.get("ProductCodeDescription") or "").strip()
-    if pdesc not in _fda_product_zh:
-        untranslated["fda_product"].add(pdesc)
+    if pdesc in _fda_product_zh:
+        product = _fda_product_zh[pdesc]
+    elif pdesc in MT["fda_product"]:
+        product = MT["fda_product"][pdesc]; machine = True
+    else:
+        untranslated["fda_product"].add(pdesc); product = pdesc
     ind = r.get("IndustryCodeDescription") or ""
-    if ind not in IND_ZH:
-        untranslated["fda_industry"].add(ind)
+    if ind in IND_ZH:
+        ind_zh = IND_ZH[ind]
+    elif ind in MT["fda_industry"]:
+        ind_zh = MT["fda_industry"][ind]; machine = True
+    else:
+        untranslated["fda_industry"].add(ind); ind_zh = ind
     grp = fda_group(r["ProductCode"])
     if grp == "食品" and ("(FOODWARE, COOKWARE & TABLEWARE)" in pdesc or pdesc.startswith("BOTTLES AND JARS")):
         grp = "食品接触材料"  # tableware and containers, same group as Taiwan's 容器具
@@ -280,8 +298,8 @@ def normalize_fda(r):
     return {
         "id": f"US-{r['ShipmentID']}-{r['RefusalDate']}", "src": "US",
         "pub_date": r["RefusalDate"], "insp_date": None,
-        "grp": grp, "ind": IND_ZH.get(ind, ind),
-        "product": _fda_product_zh.get(pdesc, pdesc), "product_orig": pdesc,
+        "grp": grp, "ind": ind_zh,
+        "product": product, "product_orig": pdesc, "machine_translated": machine,
         "problems": sorted(set(probs)) or ["其他"], "detail": "；".join(reasons),
         "legal_limit": "", "quantity": "", "firm": (r.get("FirmName") or "").strip(), "importer": "",
         "lab_tested": yes(r.get("FDASampleAnalysis")) or yes(r.get("PrivateLabAnalysis")),

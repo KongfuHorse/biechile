@@ -18,11 +18,12 @@ def short(r):
             "p": r.get("product") or "", "p0": r.get("product_orig") or "", "prob": r.get("problems") or [],
             "x": r.get("detail") or "", "lim": r.get("legal_limit") or "", "q": r.get("quantity") or "",
             "f": r.get("firm") or "", "imp": r.get("importer") or "", "lab": bool(r.get("lab_tested")),
-            "e": r.get("entry_no") or "", "act": r.get("action") or "", "u": r.get("url") or ""}
+            "e": r.get("entry_no") or "", "act": r.get("action") or "", "u": r.get("url") or "",
+            "mt": bool(r.get("machine_translated"))}
 
 
 def run(out_dir):
-    cols = "id,src,pub_date,grp,ind,product,product_orig,problems,detail,legal_limit,quantity,firm,importer,lab_tested,entry_no,action,url"
+    cols = "id,src,pub_date,grp,ind,product,product_orig,problems,detail,legal_limit,quantity,firm,importer,lab_tested,entry_no,action,url,machine_translated"
     rows = db.fetch_all(cols)
     by_year = defaultdict(list)
     for r in rows:

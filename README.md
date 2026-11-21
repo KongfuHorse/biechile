@@ -41,12 +41,18 @@ GitHub Actions 每天跑一次：
 
 仓库 Settings → Secrets and variables → Actions：
 
-- Secrets：`SUPABASE_URL`、`SUPABASE_SERVICE_KEY`、`FDA_USER`、`FDA_KEY`
+- Secrets：`SUPABASE_URL`、`SUPABASE_SERVICE_KEY`、`FDA_USER`、`FDA_KEY`、`ANTHROPIC_API_KEY`（新名称机器翻译用，可选）
 - Variables：`CF_BEACON_TOKEN`（Cloudflare Web Analytics 的 token，可选）
 
 ## 新术语
 
-每次运行后，Supabase 的 `runs` 表里 `source = 'terms'` 的记录会列出没有翻译的 FDA 产品名称和代码。把翻译加进 `ref/fda_product_zh.json` 或 `pipeline/normalize.py` 即可。
+对照表（`ref/fda_product_zh.json`、`pipeline/normalize.py`）里没有的 FDA 产品名称、行业类别和拒收原因代码：
+
+1. 有 `ANTHROPIC_API_KEY` 时，用 Claude Haiku 5.5 自动翻译，存进 Supabase 的 `term_translations` 表（`status = 'machine'`），网页上显示"机翻"标记。
+2. 人工核对：在 `term_translations` 里改好 `zh`，把 `status` 改成 `verified`；或者把译文加进对照表文件。
+3. 没有 key 时，新名称显示英文原文，并记在 `runs` 表 `source = 'terms'` 的记录里。
+
+台湾的农药、兽药名称（台湾用词转大陆用词）不能自动发现，仍然靠 `TW_TERMS` 人工维护。
 
 ## 本地测试
 
