@@ -22,6 +22,7 @@
   --jp: #b5475b;
   --eu: #7058b8;
   --kr: #8a6d1f;
+  --sg: #c0602a;
   --crit: #b3261e;
   --warn: #a8640a;
   --calm: #8a949e;
@@ -33,13 +34,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-    --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+    --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-  --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+  --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
   color-scheme: dark;
 }
 
@@ -58,7 +59,7 @@ h1 { font-family: var(--font-display); font-size: 28px; line-height: 1.25; margi
 .src-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--chip); color: var(--muted); border: 1px solid transparent; }
 .src-chip.on { color: var(--ink); border-color: var(--line); background: var(--surface); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--calm); }
-.dot.us { background: var(--us); } .dot.tw { background: var(--tw); } .dot.jp { background: var(--jp); } .dot.eu { background: var(--eu); } .dot.kr { background: var(--kr); }
+.dot.us { background: var(--us); } .dot.tw { background: var(--tw); } .dot.jp { background: var(--jp); } .dot.eu { background: var(--eu); } .dot.kr { background: var(--kr); } .dot.sg { background: var(--sg); }
 .src-chip .soon { font-size: 12px; }
 
 main .wrap { display: grid; gap: 20px; padding-top: 20px; padding-bottom: 40px; }
@@ -115,6 +116,17 @@ td.date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--
 .pill.jp { color: var(--jp); border: 1px solid var(--jp); }
 .pill.eu { color: var(--eu); border: 1px solid var(--eu); }
 .pill.kr { color: var(--kr); border: 1px solid var(--kr); }
+.pill.sg { color: var(--sg); border: 1px solid var(--sg); }
+.thumbs { display: flex; gap: 3px; margin-top: 6px; flex-wrap: nowrap; align-items: center; }
+.thumbs button { padding: 0; border: 1px solid var(--line); border-radius: 4px; background: var(--card); cursor: zoom-in; line-height: 0; }
+.thumbs img { width: 40px; height: 40px; object-fit: cover; border-radius: 3px; }
+.detail { white-space: pre-line; }
+#lb { position: fixed; inset: 0; background: rgba(0,0,0,.82); display: none; align-items: center; justify-content: center; z-index: 50; flex-direction: column; gap: 10px; padding: 16px; }
+#lb.on { display: flex; }
+#lb img { max-width: 94vw; max-height: 78vh; object-fit: contain; background: #fff; border-radius: 6px; }
+#lb .bar { display: flex; gap: 10px; align-items: center; color: #fff; font-size: 13px; flex-wrap: wrap; justify-content: center; }
+#lb button { font: inherit; background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.4); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+#lb a { color: #fff; }
 .pill.nt { background: var(--chip); color: var(--muted); font-weight: 400; }
 .pill.prob { background: var(--chip); color: var(--ink); }
 .pill.prob.crit { color: var(--crit); }
@@ -179,7 +191,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
           <select id="f-period"><option value="12m">最近 12 个月</option></select>
         </label>
         <label class="field" for="f-src">通报来源
-          <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option></select>
+          <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option></select>
         </label>
         <label class="field" for="f-grp">产品类别
           <select id="f-grp"></select>
@@ -243,6 +255,8 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <li>日本的记录来自厚生劳动省每月公布的进口时违反事例，都是检疫所检验不合格的货物。</li>
         <li>欧盟 RASFF 包括两类：口岸检查发现的"边境拒绝"，和在市场上抽检发现后发出的预警、信息通报。来源一栏标明了类型。欧盟公开数据不包含企业名称和品牌。</li>
         <li>韩国食药处的进口不合格名单只公开最近约半年（本站最早的韩国记录是 2026 年 5 月），本站每天保存新记录，更早的无法补齐。</li>
+        <li>欧盟 Safety Gate 是欧盟的非食品危险产品预警系统，收录玩具、电器、化妆品、儿童用品等。记录包含品牌、型号、条码、网上销售平台和产品照片，照片直接显示欧盟官方图片。</li>
+        <li>欧盟 RASFF 部分通报附有各国官方或零售商的公开警示页面。我们从这些页面收集产品照片，经人工核对后才显示，并注明图片来源。</li>
         <li>条数多不等于问题率高。中国的出口量很大，不合格率需要结合进口总批数来看。</li>
         <li>FDA 只公布企业英文名。中文名只在人工核实（对照工商登记信息）后显示，标"已核实"。</li>
         <li>FDA 产品名称和拒收原因由我们翻译成中文。新出现的名称先用 AI 自动翻译，标有"机翻"，人工核对后去掉标记。日本、欧盟、韩国的内容也是 AI 翻译，问题类型由 AI 归类。一切以官方原文为准。</li>
@@ -253,17 +267,23 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 </main>
 <footer><div class="wrap" id="foot"></div></footer>
 
+<div id="lb" role="dialog" aria-modal="true" aria-label="产品图片">
+  <img id="lb-img" alt="产品图片">
+  <div class="bar"><span id="lb-cap"></span></div>
+  <div class="bar"><button type="button" id="lb-prev">上一张</button><button type="button" id="lb-next">下一张</button><a id="lb-src" target="_blank" rel="noopener">看原文</a><button type="button" id="lb-close">关闭</button></div>
+</div>
 <script>
 (function () {
   "use strict";
   var FOOD = ["食品", "膳食补充剂", "食品接触材料"];
-  var CRIT = ["农药残留", "兽药残留", "污染物", "微生物"];
-  var WARN = ["色素/添加剂", "材质/溶出", "卫生/生产"];
+  var CRIT = ["农药残留", "兽药残留", "污染物", "微生物", "化学有害物", "窒息/勒颈", "触电", "火灾/烧伤", "溺水"];
+  var WARN = ["色素/添加剂", "材质/溶出", "卫生/生产", "受伤", "视力/听力损伤", "环境危害"];
   var SOON = ["新加坡 SFA", "泰国 FDA", "越南"];
-  var SRC = ["US", "TW", "JP", "EU", "KR"];
-  var SRC_NAME = { US: "美国", TW: "台湾", JP: "日本", EU: "欧盟", KR: "韩国" };
-  var SRC_FULL = { US: "美国 FDA", TW: "台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处" };
-  var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文" };
+  var SRC = ["US", "TW", "JP", "EU", "KR", "SG"];
+  var SRC_NAME = { US: "美国", TW: "台湾", JP: "日本", EU: "欧盟", KR: "韩国", SG: "欧盟·非食品" };
+  var SRC_FULL = { US: "美国 FDA", TW: "台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处", SG: "欧盟 Safety Gate" };
+  var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文", SG: "Safety Gate 原文" };
+  var SG_IMG = "https://ec.europa.eu/safety-gate-alerts/public/api/notification/";
   var PER = 30;
   var all = [], meta = null, view = [], page = 1, cache = {}, range = { from: "", to: "" };
   var st = { scope: "food", src: "", grp: "", prob: "", q: "", lab: false, period: "12m" };
@@ -397,6 +417,24 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     }).join("") : '<p class="small">没有符合条件的记录。</p>';
   }
 
+  function imgUrl(x, thumb) {
+    return x.indexOf("sg:") === 0 ? SG_IMG + (thumb ? "thumbnail/" : "image/") + x.slice(3) : x;
+  }
+  function thumbs(r) {
+    if (!r.im || !r.im.length) return "";
+    return '<div class="thumbs">' + r.im.slice(0, 3).map(function (x, i) {
+      return '<button type="button" data-id="' + esc(r.id) + '" data-i="' + i + '" aria-label="查看产品图片 ' + (i + 1) + '">' +
+        '<img loading="lazy" src="' + esc(imgUrl(x, true)) + '" alt="" onerror="this.parentNode.style.display=\'none\'"></button>';
+    }).join("") + (r.im.length > 3 ? '<span class="small">+' + (r.im.length - 3) + "</span>" : "") + "</div>";
+  }
+  var lb = { r: null, i: 0 };
+  function showLb() {
+    var r = lb.r, x = r.im[lb.i];
+    $("lb-img").src = imgUrl(x, false);
+    $("lb-cap").textContent = (lb.i + 1) + " / " + r.im.length + " · " + r.p + " · 图片来源：" + (r.src === "SG" ? "欧盟 Safety Gate" : (r.ims || "官方警示页面"));
+    $("lb-src").href = r.u;
+    $("lb").classList.add("on");
+  }
   function renderRows() {
     var pages = Math.max(1, Math.ceil(view.length / PER));
     if (page > pages) page = pages;
@@ -415,14 +453,15 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       if (r.q) det += '<div class="small">数量：' + esc(r.q) + " · " + esc(r.act) + "</div>";
       else if (r.act) det += '<div class="small">处理：' + esc(r.act) + "</div>";
       if (r.o) det += '<div class="small">' + esc(r.o) + "</div>";
-      var firm = (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">中文名：' + esc(r.fz) + "（已核实）</div>" : "") +
+      var firm = r.src === "SG" ? (r.f ? '<span class="small">品牌：</span>' + esc(r.f) : '<span class="small">品牌未公开</span>') :
+        (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">中文名：' + esc(r.fz) + "（已核实）</div>" : "") +
         (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
       var link = LINK[r.src] || "原文";
       return '<tr class="sev-' + sev(r.prob) + '">' +
         '<td class="date" data-k="日期">' + esc(r.d) + "</td>" +
         '<td data-k="来源"><span class="pill ' + r.src.toLowerCase() + '">' + (SRC_NAME[r.src] || r.src) + "</span>" + (r.nt ? '<div><span class="pill nt">' + esc(r.nt) + "</span></div>" : "") + "</td>" +
-        '<td><div class="prod">' + esc(r.p) + (r.mt ? '<span class="pill mt" title="机器翻译，待人工核对">机翻</span>' : "") + '</div><div class="small">' + cat + "</div></td>" +
+        '<td><div class="prod">' + esc(r.p) + (r.mt ? '<span class="pill mt" title="机器翻译，待人工核对">机翻</span>' : "") + '</div><div class="small">' + cat + "</div>" + thumbs(r) + "</td>" +
         '<td><div class="pills">' + probs + "</div>" + det + "</td>" +
         '<td class="firm" data-k="企业">' + firm + "</td>" +
         '<td data-k="检测">' + (r.lab ? '<span class="lab-yes">有化验</span>' : '<span class="lab-no">未化验</span>') + "</td>" +
@@ -442,6 +481,21 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     $("f-period").addEventListener("change", function (e) { st.period = e.target.value; loadPeriod(); });
     $("f-src").addEventListener("change", function (e) { st.src = e.target.value; apply(); });
     $("f-grp").addEventListener("change", function () { apply(); });
+    $("rows").addEventListener("click", function (e) {
+      var b = e.target.closest(".thumbs button"); if (!b) return;
+      lb.r = view.filter(function (r) { return r.id === b.dataset.id; })[0]; lb.i = +b.dataset.i;
+      if (lb.r) showLb();
+    });
+    $("lb-close").addEventListener("click", function () { $("lb").classList.remove("on"); });
+    $("lb").addEventListener("click", function (e) { if (e.target.id === "lb") $("lb").classList.remove("on"); });
+    $("lb-prev").addEventListener("click", function () { lb.i = (lb.i - 1 + lb.r.im.length) % lb.r.im.length; showLb(); });
+    $("lb-next").addEventListener("click", function () { lb.i = (lb.i + 1) % lb.r.im.length; showLb(); });
+    document.addEventListener("keydown", function (e) {
+      if (!$("lb").classList.contains("on")) return;
+      if (e.key === "Escape") $("lb").classList.remove("on");
+      if (e.key === "ArrowLeft") $("lb-prev").click();
+      if (e.key === "ArrowRight") $("lb-next").click();
+    });
     $("f-prob").addEventListener("change", function () { apply(); });
     $("f-lab").addEventListener("change", function (e) { st.lab = e.target.checked; apply(); });
     var t;

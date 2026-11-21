@@ -6,6 +6,8 @@ Records that use a machine translation get machine_translated = true and show a 
 on the website until a person checks the term and sets status = 'verified'.
 """
 import json
+import time
+from concurrent.futures import ThreadPoolExecutor
 import os
 import re
 
@@ -118,7 +120,10 @@ PROBLEM_TYPES = {
 }
 SRC_LANG = {"JP": "Japanese (from Japan's Ministry of Health border inspection records)",
             "EU": "English or another EU language (from the EU RASFF food alert system)",
-            "KR": "Korean (from Korea's Ministry of Food and Drug Safety import inspection records)"}
+            "KR": "Korean (from Korea's Ministry of Food and Drug Safety import inspection records)",
+            "SG": "English (from the EU Safety Gate alert system for dangerous non-food products such as toys, "
+                  "electrical appliances, cosmetics and children's products; the product field has the product type "
+                  "and the product name, separated by |)"}
 
 
 def translate_items(src, items):
@@ -128,46 +133,68 @@ def translate_items(src, items):
     if not items or not available():
         return out
     types = "\n".join(f"- {k}: {v}" for k, v in PROBLEM_TYPES.items())
-    for i in range(0, len(items), 20):
-        batch = items[i:i + 20]
+
+    def one(batch):
         prompt = (
-            f"Below are records of products from China that failed inspection. The text is in {SRC_LANG[src]}.\n"
+            f"Below are records of products from China that failed inspection or were found unsafe. The text is in {SRC_LANG[src]}.\n"
             "For each record:\n"
-            "1. product_zh: translate the product name into short, natural Simplified Chinese as used in mainland China.\n"
+            "1. product_zh: translate the product name into short, natural Simplified Chinese as used in mainland China. "
+            "Keep brand names and model numbers in their original form.\n"
             "2. detail_zh: translate the problem description into Simplified Chinese. Keep every number, unit and "
             "substance. Use standard mainland Chinese names for pesticides, drugs, chemicals and microbes. "
             "Do not add information that is not in the source. Say legal boilerplate briefly, for example "
-            "'超过残留限量' instead of a long sentence that cites the article of the law.\n"
+            "'超过残留限量' instead of a long sentence that cites the article of the law. Translate the whole text: "
+            "if it has a line starting with 'Description:', keep it as a new line starting with '产品描述：'.\n"
             "3. types: one or more problem types from this list (use the Chinese key exactly):\n" + types + "\n\n"
             "Return only a JSON array with one object per record, in the same order: "
             '[{"i": 0, "product_zh": "...", "detail_zh": "...", "types": ["..."]}]. No other text.\n\n'
             "Records:\n" + json.dumps([{"i": n, **x} for n, x in enumerate(batch)], ensure_ascii=False)
         )
-        r = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-            json={"model": MODEL, "max_tokens": 8000, "messages": [{"role": "user", "content": prompt}]},
-            timeout=180,
-        )
-        r.raise_for_status()
+        part = {"product": {}, "detail": {}, "prob": {}}
+        for attempt in range(3):
+            try:
+                r = requests.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                    json={"model": MODEL, "max_tokens": 12000, "messages": [{"role": "user", "content": prompt}]},
+                    timeout=240,
+                )
+                if r.status_code in (429, 500, 502, 503, 529):
+                    time.sleep(20 * (attempt + 1))
+                    continue
+                r.raise_for_status()
+                break
+            except requests.RequestException:
+                if attempt == 2:
+                    return part
+                time.sleep(10)
+        else:
+            return part
         text = "".join(c.get("text", "") for c in r.json().get("content", []))
         m = re.search(r"\[.*\]", text, re.S)
         if not m:
-            continue
+            return part
         try:
             data = json.loads(m.group(0))
         except ValueError:
-            continue
+            return part
         for d in data:
             if not isinstance(d, dict) or not isinstance(d.get("i"), int) or not 0 <= d["i"] < len(batch):
                 continue
             src_item = batch[d["i"]]
             if src_item.get("product") and (d.get("product_zh") or "").strip():
-                out["product"][src_item["product"]] = d["product_zh"].strip()
+                part["product"][src_item["product"]] = d["product_zh"].strip()
             if src_item.get("detail") and (d.get("detail_zh") or "").strip():
-                out["detail"][src_item["detail"]] = d["detail_zh"].strip()
+                part["detail"][src_item["detail"]] = d["detail_zh"].strip()
                 ts = [t for t in (d.get("types") or []) if t in PROBLEM_TYPES]
-                out["prob"][src_item["detail"]] = "|".join(dict.fromkeys(ts or ["其他"]))
+                part["prob"][src_item["detail"]] = "|".join(dict.fromkeys(ts or ["其他"]))
+        return part
+
+    batches = [items[i:i + 15] for i in range(0, len(items), 15)]
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        for part in ex.map(one, batches):
+            for k in out:
+                out[k].update(part[k])
     return out
 
 

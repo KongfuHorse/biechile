@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from datetime import date
 
-from . import db, normalize
+from . import db, images, normalize
 
 SOURCES = {
     "TW": {"name": "台湾 食品药物管理署 (TFDA)", "url": "https://www.fda.gov.tw/UnsafeFood/UnsafeFood.aspx"},
@@ -14,8 +14,9 @@ SOURCES = {
            "url": "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/shokuhin/yunyu_kanshi/ihan/index.html"},
     "EU": {"name": "欧盟 食品和饲料快速预警系统 (RASFF)", "url": "https://webgate.ec.europa.eu/rasff-window/screen/search"},
     "KR": {"name": "韩国 食品医药品安全处 进口食品不合格", "url": "https://impfood.mfds.go.kr/CFCEE01F01"},
+    "SG": {"name": "欧盟 非食品危险产品预警 (Safety Gate)", "url": "https://ec.europa.eu/safety-gate-alerts/screen/webReport"},
 }
-INTL = ("JP", "EU", "KR")
+INTL = ("JP", "EU", "KR", "SG")
 
 
 def apply_reviews(r, tt, firm_zh):
@@ -57,11 +58,11 @@ def apply_intl(r, tt):
     if (f"{k}_product", po) in tt:
         zh, st = tt[(f"{k}_product", po)]
         r["product"] = zh; machine |= st == "machine"; hit = True
-    do = r.get("subj") if r["src"] == "EU" else r.get("vio")
+    do = r.get("subj") if r["src"] == "EU" else r.get("sgd") if r["src"] == "SG" else r.get("vio")
     if do and (f"{k}_detail", do) in tt:
         zh, st = tt[(f"{k}_detail", do)]
         r["detail"] = zh; machine |= st == "machine"; hit = True
-    if do and (f"{k}_prob", do) in tt:
+    if do and r["src"] != "SG" and (f"{k}_prob", do) in tt:
         r["problems"] = [x for x in tt[(f"{k}_prob", do)][0].split("|") if x] or ["其他"]
     if hit:
         r["machine_translated"] = machine
@@ -76,17 +77,33 @@ def short(r):
             "f": r.get("firm") or "", "imp": r.get("importer") or "", "lab": bool(r.get("lab_tested")),
             "e": r.get("entry_no") or "", "act": r.get("action") or "", "u": r.get("url") or "",
             "mt": bool(r.get("machine_translated")), "fz": r.get("firm_zh") or "",
-            "nt": r.get("ntype") or "", "o": r.get("note") or ""}
+            "nt": r.get("ntype") or "", "o": r.get("note") or "",
+            "im": r.get("im") or [], "ims": r.get("im_src") or ""}
 
 
 def run(out_dir):
     cols = "id,src,pub_date,grp,ind,product,product_orig,problems,detail,legal_limit,quantity,firm,importer,lab_tested,entry_no,action,url,machine_translated"
-    cols += ",ntype,note,fei:raw->>FEINumber,ind0:raw->>IndustryCodeDescription,vio:raw->>violation,subj:raw->summary->>subject"
+    cols += ",ntype,note,fei:raw->>FEINumber,ind0:raw->>IndustryCodeDescription,vio:raw->>violation,subj:raw->summary->>subject,sgdanger:raw->>danger,sgdesc:raw->>description,sgpic:raw->pictures"
     rows = db.fetch_all(cols)
     tt = {(t["kind"], t["source"]): (t["zh"], t["status"])
           for t in db.fetch_table("term_translations", "kind,source,zh,status", "&order=kind,source")}
     firm_zh = {f["fei"]: f["zh_name"] for f in db.fetch_table("firm_names", "fei,zh_name", "&order=fei")}
+    for r in rows:
+        raw = r.get("raw") or {}  # local mode returns whole records instead of the JSON-path columns
+        for k, rk in (("sgdanger", "danger"), ("sgdesc", "description"), ("sgpic", "pictures")):
+            if r.get(k) is None and r.get("src") == "SG":
+                r[k] = raw.get(rk)
+        if r.get("src") == "SG":
+            r["sgd"] = (r.get("sgdanger") or "") + (("\nDescription: " + r["sgdesc"]) if r.get("sgdesc") else "")
+    imgs = images.approved()
     rows = [apply_reviews(r, tt, firm_zh) for r in rows]
+    for r in rows:
+        if r.get("src") == "SG":
+            r["im"] = ["sg:" + str(i) for i in (r.get("sgpic") or [])][:6]
+        elif r["id"] in imgs:
+            r["im"] = ["img/" + x["path"] for x in imgs[r["id"]]]
+            r["im_src"] = images.host(imgs[r["id"]][0]["page"])
+    n_img = images.download_approved(os.path.join(out_dir, "img")) if imgs else 0
     by_year = defaultdict(list)
     for r in rows:
         by_year[str(r["pub_date"])[:4]].append(short(r))
@@ -102,4 +119,4 @@ def run(out_dir):
     }
     with open(os.path.join(out_dir, "data", "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=1)
-    print(f"exported {len(rows)} records in {len(years)} year files")
+    print(f"exported {len(rows)} records in {len(years)} year files, {n_img} approved images")

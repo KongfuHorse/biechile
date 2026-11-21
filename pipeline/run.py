@@ -2,7 +2,7 @@
   python -m pipeline.run                     # daily update: new TW notices + FDA last 30 days, then export
   python -m pipeline.run --since 2023-01-01  # backfill from a date
   python -m pipeline.run --export-only       # only rebuild the website JSON files
-  python -m pipeline.run --skip tw us        # skip sources: tw us jp eu kr
+  python -m pipeline.run --skip tw us        # skip sources: tw us jp eu kr sg img
 """
 import argparse
 import os
@@ -10,7 +10,7 @@ import sys
 import traceback
 from datetime import date, timedelta
 
-from . import db, eu, export, firms, jp, kr, mt, normalize, sources
+from . import db, eu, export, firms, images, jp, kr, mt, normalize, sg, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
 
@@ -66,9 +66,26 @@ def run_eu(since_arg, cache):
     db.log_run("EU", fetched, stored, "ok", f"since={since} skipped_existing={len(have)}")
 
 
+def run_sg(since_arg, cache):
+    """EU Safety Gate, one weekly report at a time. Daily run looks at the last 3 weeks."""
+    since = since_arg or (date.today() - timedelta(days=21)).isoformat()
+    have = db.ids("SG") if since_arg else set()
+    fetched = stored = 0
+    for ref, raw in sg.fetch_reports(since):
+        raw = [r for r in raw if sg.rec_id(r) not in have]
+        tr = mt.prepare("SG", raw, sg.product_text, sg.detail_text, cache)
+        recs = list({x["id"]: x for x in (sg.normalize(r, tr(r)) for r in raw)}.values())
+        fetched += len(raw)
+        stored += db.upsert(recs) if recs else 0
+        print(f"  SG {ref}: {len(recs)} records", flush=True)
+    db.log_run("SG", fetched, stored, "ok", f"since={since} skipped_existing={len(have)}")
+
+
 def run_intl(key, since_arg, cache):
     if key == "eu":
         return run_eu(since_arg, cache)
+    if key == "sg":
+        return run_sg(since_arg, cache)
     cfg = INTL[key]
     since = since_arg or (date.today() - timedelta(days=cfg["days"] or 0)).isoformat()
     raw = cfg["fetch"](since)
@@ -87,7 +104,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", help="backfill start date YYYY-MM-DD")
     ap.add_argument("--export-only", action="store_true")
-    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr")
+    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg img")
     a = ap.parse_args()
     print("storage:", "Supabase" if db.using_supabase() else "local file")
     failed = False
@@ -125,7 +142,7 @@ def main():
 
         # Japan, EU, Korea
         cache = None
-        for key in ("jp", "eu", "kr"):
+        for key in ("jp", "eu", "kr", "sg"):
             if key in a.skip:
                 continue
             try:
@@ -135,6 +152,14 @@ def main():
             except Exception:
                 failed = True
                 db.log_run(key.upper(), 0, 0, "error", traceback.format_exc())
+
+        # product photos for EU RASFF records (admin approves them before they show)
+        if "img" not in a.skip:
+            try:
+                p, n = images.run()
+                db.log_run("IMG", p, n, "ok", "pages opened / candidate images")
+            except Exception:
+                db.log_run("IMG", 0, 0, "error", traceback.format_exc())
 
         # AI candidate Chinese names for top firms (admin page only); a failure here does not fail the run
         if "us" not in a.skip:
