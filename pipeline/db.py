@@ -69,12 +69,18 @@ def fetch_all(columns="*"):
 
 
 def fetch_table(name, select="*", query=""):
-    """Read a whole small table (Supabase only; returns [] in local mode)."""
+    """Read a whole table in pages of 1000 (Supabase only; returns [] in local mode)."""
     if not using_supabase():
         return []
-    r = requests.get(f"{URL}/rest/v1/{name}?select={select}{query}", headers=_h(), timeout=120)
-    r.raise_for_status()
-    return r.json()
+    out, step = [], 1000
+    while True:
+        r = requests.get(f"{URL}/rest/v1/{name}?select={select}{query}",
+                         headers=_h({"Range-Unit": "items", "Range": f"{len(out)}-{len(out) + step - 1}"}), timeout=120)
+        r.raise_for_status()
+        rows = r.json()
+        out += rows
+        if len(rows) < step or "limit=" in query:
+            return out
 
 
 def ids(src):

@@ -60,8 +60,8 @@ def generate_candidates(limit=20):
     if not (db.using_supabase() and mt.available()):
         return 0
     top = db.fetch_table("firm_stats", "fei,firm_en,city", "&order=lines.desc&limit=300")
-    have = {x["fei"] for x in db.fetch_table("firm_names", "fei")} | \
-           {x["fei"] for x in db.fetch_table("firm_candidates", "fei")}
+    have = {x["fei"] for x in db.fetch_table("firm_names", "fei", "&order=fei")} | \
+           {x["fei"] for x in db.fetch_table("firm_candidates", "fei", "&order=fei")}
     todo = [f for f in top if f["fei"] not in have][:limit]
     if not todo:
         return 0

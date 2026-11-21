@@ -52,18 +52,19 @@ def apply_reviews(r, tt, firm_zh):
 def apply_intl(r, tt):
     """Japan, EU, Korea: product, detail and problem types come from term_translations."""
     k = r["src"].lower()
-    machine = False
+    machine, hit = False, False
     po = r.get("product_orig") or ""
     if (f"{k}_product", po) in tt:
         zh, st = tt[(f"{k}_product", po)]
-        r["product"] = zh; machine |= st == "machine"
+        r["product"] = zh; machine |= st == "machine"; hit = True
     do = r.get("subj") if r["src"] == "EU" else r.get("vio")
     if do and (f"{k}_detail", do) in tt:
         zh, st = tt[(f"{k}_detail", do)]
-        r["detail"] = zh; machine |= st == "machine"
+        r["detail"] = zh; machine |= st == "machine"; hit = True
     if do and (f"{k}_prob", do) in tt:
         r["problems"] = [x for x in tt[(f"{k}_prob", do)][0].split("|") if x] or ["其他"]
-    r["machine_translated"] = machine
+    if hit:
+        r["machine_translated"] = machine
     return r
 
 
@@ -83,8 +84,8 @@ def run(out_dir):
     cols += ",ntype,note,fei:raw->>FEINumber,ind0:raw->>IndustryCodeDescription,vio:raw->>violation,subj:raw->summary->>subject"
     rows = db.fetch_all(cols)
     tt = {(t["kind"], t["source"]): (t["zh"], t["status"])
-          for t in db.fetch_table("term_translations", "kind,source,zh,status")}
-    firm_zh = {f["fei"]: f["zh_name"] for f in db.fetch_table("firm_names", "fei,zh_name")}
+          for t in db.fetch_table("term_translations", "kind,source,zh,status", "&order=kind,source")}
+    firm_zh = {f["fei"]: f["zh_name"] for f in db.fetch_table("firm_names", "fei,zh_name", "&order=fei")}
     rows = [apply_reviews(r, tt, firm_zh) for r in rows]
     by_year = defaultdict(list)
     for r in rows:

@@ -79,9 +79,7 @@ def load_cache():
     """{kind: {source: zh}} for all saved machine and verified translations."""
     rows = []
     if db.using_supabase():
-        r = requests.get(f"{db.URL}/rest/v1/term_translations?select=kind,source,zh", headers=db._h(), timeout=60)
-        r.raise_for_status()
-        rows = r.json()
+        rows = db.fetch_table("term_translations", "kind,source,zh", "&order=kind,source")
     elif os.path.exists(LOCAL):
         rows = json.load(open(LOCAL, encoding="utf-8"))
     cache = {}
