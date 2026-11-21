@@ -56,7 +56,8 @@ select r.raw->>'FEINumber' as fei,
        count(*) as lines,
        count(distinct r.entry_no) as shipments,
        max(r.pub_date) as last_date,
-       (array_agg(r.product order by r.pub_date desc))[1] as last_product
+       (array_agg(r.product order by r.pub_date desc))[1] as last_product,
+       count(*) filter (where r.grp in ('食品', '膳食补充剂', '食品接触材料')) as food_lines
 from records r
 where r.src = 'US' and coalesce(r.raw->>'FEINumber', '') <> ''
 group by r.raw->>'FEINumber';
@@ -121,7 +122,7 @@ begin
       left join firm_names n on n.fei = s.fei
       left join firm_candidates c on c.fei = s.fei
       order by s.lines desc, s.fei
-      limit greatest(1, least(p_limit, 2000))
+      limit greatest(1, least(p_limit, 5000))
     ) x
   );
 end $$;

@@ -135,6 +135,13 @@
     </div>
     <div class="bar">
       <input id="firmSearch" type="search" placeholder="搜索英文名、中文名、城市、FEI" aria-label="搜索企业" style="flex:1; min-width:220px">
+      <label class="small" for="firmSort">排序
+        <select id="firmSort">
+          <option value="lines">被拒收总行数</option>
+          <option value="food">食品相关行数</option>
+        </select>
+      </label>
+      <label class="small" for="onlyFood" style="display:flex; gap:6px; align-items:center"><input type="checkbox" id="onlyFood"> 只看有食品相关记录的</label>
       <label class="small" for="onlyTodo" style="display:flex; gap:6px; align-items:center"><input type="checkbox" id="onlyTodo"> 只看未核实</label>
       <span class="muted small" id="firmCount"></span>
     </div>
@@ -252,16 +259,19 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 
 // ---------- 企业中文名 ----------
 async function loadFirms() {
-  firms = await rpc("admin_firms", { p_token: token, p_limit: 2000 });
+  firms = await rpc("admin_firms", { p_token: token, p_limit: 5000 });
   renderFirms();
 }
 function firmView() {
-  const q = $("firmSearch").value.trim().toLowerCase(), todo = $("onlyTodo").checked;
-  return firms.filter(f => {
+  const q = $("firmSearch").value.trim().toLowerCase(), todo = $("onlyTodo").checked, food = $("onlyFood").checked;
+  const list = firms.filter(f => {
     if (todo && f.zh_name) return false;
+    if (food && !f.food_lines) return false;
     if (!q) return true;
     return [f.firm_en, f.zh_name, f.city, f.fei].join(" ").toLowerCase().includes(q);
   });
+  if ($("firmSort").value === "food") list.sort((a, b) => (b.food_lines - a.food_lines) || (b.lines - a.lines));
+  return list;
 }
 function searchLinks(f) {
   const g = encodeURIComponent(`"${f.firm_en}" ${f.city || ""} China`);
@@ -276,18 +286,17 @@ function candLinks(name) {
 }
 function renderFirms() {
   const view = firmView(), done = firms.filter(f => f.zh_name).length;
-  const total = firms.length >= 2000 ? "被拒收最多的前 2000 家" : `共 ${firms.length} 家`;
-  $("firmCount").textContent = `${total}，已核实 ${done} 家，当前显示 ${Math.min(shown, view.length)} / ${view.length}`;
+  $("firmCount").textContent = `共 ${firms.length} 家，已核实 ${done} 家，当前显示 ${Math.min(shown, view.length)} / ${view.length}`;
   $("moreFirms").classList.toggle("hidden", view.length <= shown);
   $("firmRows").innerHTML = view.slice(0, shown).map(f => {
-    const rank = firms.indexOf(f) + 1;
+    const rank = view.indexOf(f) + 1;
     const zh = f.zh_name
       ? `<span class="tag ok">已核实</span> ${esc(f.zh_name)}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
       : `<span class="tag none">未核实</span>`;
     let row = `<tr data-fei="${esc(f.fei)}">
       <td class="num">${rank}</td>
       <td><b>${esc(f.firm_en)}</b><div class="small muted">${esc(f.city || "")} · FEI ${esc(f.fei)}</div></td>
-      <td class="num">${f.lines} 行<div class="small muted">${f.shipments} 批</div></td>
+      <td class="num">${f.lines} 行<div class="small muted">${f.shipments} 批 · 食品相关 ${f.food_lines} 行</div></td>
       <td class="num">${esc(f.last_date)}<div class="small muted">${esc(f.last_product || "")}</div></td>
       <td>${zh}</td>
       <td>${searchLinks(f)}</td>
@@ -341,6 +350,8 @@ $("firmRows").addEventListener("submit", async e => {
 });
 $("firmSearch").addEventListener("input", () => { shown = PAGE; renderFirms(); });
 $("onlyTodo").addEventListener("change", () => { shown = PAGE; renderFirms(); });
+$("onlyFood").addEventListener("change", () => { shown = PAGE; renderFirms(); });
+$("firmSort").addEventListener("change", () => { shown = PAGE; renderFirms(); });
 $("moreFirms").addEventListener("click", () => { shown += PAGE; renderFirms(); });
 
 // ---------- 翻译核对 ----------
