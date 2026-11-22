@@ -50,8 +50,8 @@ def translate(kind, terms, ref_examples):
     if not terms or not available():
         return {}
     out = {}
-    for i in range(0, len(terms), 40):
-        batch = terms[i:i + 40]
+    for i in range(0, len(terms), 20):
+        batch = terms[i:i + 20]
         prompt = (
             f"{STYLE[kind]}\n\nExamples of the style to follow:\n{_examples(kind, ref_examples)}\n\n"
             "Return only a JSON object that maps each input string exactly as given to its translation. "
@@ -68,15 +68,15 @@ def translate(kind, terms, ref_examples):
         m = re.search(r"\{.*\}", text, re.S)
         try:
             data = json.loads(m.group(0)) if m else {}
-        except ValueError:
-            data = {}
+        except ValueError:  # one bad line spoils the whole object: read the pairs one by one
+            data = dict(re.findall(r'^\s*"(.+?)"\s*:\s*"(.*?)"\s*,?\s*$', text, re.M))
         # the model sometimes tidies spacing in the keys, so match on the key without extra spaces
         key = lambda t: re.sub(r"\s+", " ", t).strip().rstrip(",").upper()
         wanted = {key(t): t for t in batch}
         got = {wanted[key(k)]: v.strip() for k, v in data.items()
                if isinstance(k, str) and key(k) in wanted and isinstance(v, str) and v.strip()}
         if len(got) < len(batch):
-            print(f"  translate {kind}: {len(got)}/{len(batch)} in batch {i // 40 + 1}; reply starts: {text[:200]!r}",
+            print(f"  translate {kind}: {len(got)}/{len(batch)} in batch {i // 20 + 1}; reply starts: {text[:200]!r}",
                   flush=True)
         out.update(got)
     return out
