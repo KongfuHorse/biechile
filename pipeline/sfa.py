@@ -13,13 +13,46 @@ import time
 
 import requests
 
-from . import mt
+from . import db, mt
 
 BASE = "https://www.sfa.gov.sg"
 API = BASE + "/api/newsroom/search"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36"}
 class Blocked(Exception):
     """SFA's firewall answers cloud servers (such as GitHub's) with an empty 202 page."""
+
+
+def _via_db(url, wait=45):
+    """Fetch through the database (Supabase can reach SFA; GitHub's servers are blocked)."""
+    r = requests.post(f"{db.URL}/rest/v1/rpc/proxy_get", json={"p_url": url}, headers=db._h(), timeout=30)
+    r.raise_for_status()
+    rid = r.json()
+    for _ in range(wait):
+        time.sleep(1)
+        res = requests.post(f"{db.URL}/rest/v1/rpc/proxy_result", json={"p_id": rid}, headers=db._h(), timeout=30)
+        res.raise_for_status()
+        d = res.json()
+        if d:
+            if d.get("timed_out") or d.get("error") or not str(d.get("status", "")).startswith("2") or not d.get("content"):
+                raise Blocked(f"database fetch failed: {d.get('status')} {d.get('error')}")
+            return d["content"]
+    raise Blocked("database fetch did not finish in time")
+
+
+def get(url):
+    """Page text: direct first, through the database if SFA blocks this server."""
+    try:
+        r = requests.get(url, headers=UA, timeout=60)
+        if r.status_code == 200 and r.content:
+            r.encoding = r.encoding or "utf-8"
+            return r.text
+        if r.status_code not in (202, 403):
+            r.raise_for_status()
+    except requests.RequestException:
+        pass
+    if not db.using_supabase():
+        raise Blocked(f"SFA site blocked this server ({url})")
+    return _via_db(url)
 
 
 RECALL = re.compile(r"recall|adulterat|found to contain|not permitted|unsafe|contaminat", re.I)
@@ -29,12 +62,7 @@ def articles(since):
     """Newsroom items published on or after since that look like recalls, newest first."""
     out, page = [], 1
     while True:
-        r = requests.get(API, params={"page": page, "limit": 100, "contentTypes": "12,15,16,13,17,14"},
-                         headers=UA, timeout=60)
-        r.raise_for_status()
-        if r.status_code == 202 or not r.content:
-            raise Blocked("SFA site blocked this server (HTTP 202, empty page)")
-        d = r.json()
+        d = json.loads(get(f"{API}?page={page}&limit=100&contentTypes=12,15,16,13,17,14"))
         items = [i for i in d.get("items") or [] if i.get("lastPublished")]
         out += [i for i in items if i["lastPublished"][:10] >= since and RECALL.search(i.get("title") or "")]
         oldest = min((i["lastPublished"][:10] for i in items), default="")
@@ -44,10 +72,9 @@ def articles(since):
 
 
 def article_text(url):
-    r = requests.get(BASE + url, headers=UA, timeout=60)
-    r.raise_for_status()
-    m = re.search(r"<main\b.*?</main>", r.text, re.S)
-    part = re.sub(r"<script.*?</script>|<style.*?</style>", "", m.group(0) if m else r.text, flags=re.S)
+    text = get(BASE + url)
+    m = re.search(r"<main\b.*?</main>", text, re.S)
+    part = re.sub(r"<script.*?</script>|<style.*?</style>", "", m.group(0) if m else text, flags=re.S)
     part = re.sub(r"<(br|/p|/li|/h\d|/tr|/div)\b[^>]*>", "\n", part)
     txt = html.unescape(re.sub(r"<[^>]+>", " ", part))
     txt = re.sub(r"[ \t]+", " ", txt)

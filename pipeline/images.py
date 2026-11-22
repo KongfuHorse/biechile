@@ -148,17 +148,25 @@ def process_record(rec, page_url):
     """Collect images for one record from one page. Returns (status, n_candidates)."""
     if page_url.lower().split("?")[0].endswith(".pdf"):
         return "skipped", 0
-    try:
-        r = requests.get(page_url, headers=UA, timeout=25)
-    except requests.RequestException:
-        return "error", 0
-    if r.status_code >= 400:
-        return f"http_{r.status_code}", 0
-    if "html" not in r.headers.get("content-type", "html"):
-        return "skipped", 0
-    r.encoding = r.encoding or "utf-8"
+    if rec.get("src") == "SFA":
+        from . import sfa
+        try:
+            page_text, final_url = sfa.get(page_url), page_url
+        except Exception:
+            return "error", 0
+    else:
+        try:
+            r = requests.get(page_url, headers=UA, timeout=25)
+        except requests.RequestException:
+            return "error", 0
+        if r.status_code >= 400:
+            return f"http_{r.status_code}", 0
+        if "html" not in r.headers.get("content-type", "html"):
+            return "skipped", 0
+        r.encoding = r.encoding or "utf-8"
+        page_text, final_url = r.text, r.url
     imgs, seen = [], set()
-    for u in candidates(r.url, r.text):
+    for u in candidates(final_url, page_text):
         try:
             im = fetch_image(u)
         except Exception:

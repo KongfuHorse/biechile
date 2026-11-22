@@ -72,6 +72,6 @@ python -m pipeline.run --since 2026-01-01   # 没有 Supabase 设置时，数据
 cd site && python -m http.server            # 打开 http://localhost:8000
 ```
 
-## 三期待办
+## 新加坡（SFA）的抓取方式
 
-- 新加坡食品局（SFA）每日自动更新：SFA 网站的防火墙拦截 GitHub 的服务器（返回空白 202 页面），所以每日任务会跳过新加坡并记一条 blocked 日志。2023 年至 2026 年 11 月的 10 条已手动导入。测试过 Supabase 的服务器可以访问 SFA，但用数据库代为抓取属于绕过对方防火墙，没有采用。新加坡每年只有 3 到 4 条相关召回，三期时再定办法（比如手动更新，或和其他需要本地抓取的来源一起做）。新加坡召回页面的产品照片也还没抓。
+SFA 网站的防火墙拦截 GitHub 的服务器（返回空白 202 页面），但不拦 Supabase。所以每日任务先直接访问，被拦时改由数据库函数 `proxy_get` / `proxy_result`（pg_net）代为抓取。函数只允许 www.sfa.gov.sg 的地址，只有 service role 能调用。
