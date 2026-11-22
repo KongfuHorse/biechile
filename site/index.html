@@ -23,6 +23,7 @@
   --eu: #7058b8;
   --kr: #8a6d1f;
   --sg: #c0602a;
+  --sfa: #3b8a3e;
   --crit: #b3261e;
   --warn: #a8640a;
   --calm: #8a949e;
@@ -34,13 +35,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-    --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+    --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-  --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+  --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
   color-scheme: dark;
 }
 
@@ -59,7 +60,7 @@ h1 { font-family: var(--font-display); font-size: 28px; line-height: 1.25; margi
 .src-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--chip); color: var(--muted); border: 1px solid transparent; }
 .src-chip.on { color: var(--ink); border-color: var(--line); background: var(--surface); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--calm); }
-.dot.us { background: var(--us); } .dot.tw { background: var(--tw); } .dot.jp { background: var(--jp); } .dot.eu { background: var(--eu); } .dot.kr { background: var(--kr); } .dot.sg { background: var(--sg); }
+.dot.us { background: var(--us); } .dot.tw { background: var(--tw); } .dot.jp { background: var(--jp); } .dot.eu { background: var(--eu); } .dot.kr { background: var(--kr); } .dot.sg { background: var(--sg); } .dot.sfa { background: var(--sfa); }
 .src-chip .soon { font-size: 12px; }
 
 main .wrap { display: grid; gap: 20px; padding-top: 20px; padding-bottom: 40px; }
@@ -117,6 +118,8 @@ td.date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--
 .pill.eu { color: var(--eu); border: 1px solid var(--eu); }
 .pill.kr { color: var(--kr); border: 1px solid var(--kr); }
 .pill.sg { color: var(--sg); border: 1px solid var(--sg); }
+.pill.sfa { color: var(--sfa); border: 1px solid var(--sfa); }
+.pill.nt.ok { background: transparent; color: var(--ok, #1d7a4c); border: 1px solid currentColor; }
 .thumbs { display: flex; gap: 3px; margin-top: 6px; flex-wrap: nowrap; align-items: center; }
 .thumbs button { padding: 0; border: 1px solid var(--line); border-radius: 4px; background: var(--card); cursor: zoom-in; line-height: 0; }
 .thumbs img { width: 40px; height: 40px; object-fit: cover; border-radius: 3px; }
@@ -191,7 +194,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
           <select id="f-period"><option value="12m">最近 12 个月</option></select>
         </label>
         <label class="field" for="f-src">通报来源
-          <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option></select>
+          <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option></select>
         </label>
         <label class="field" for="f-grp">产品类别
           <select id="f-grp"></select>
@@ -257,6 +260,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <li>韩国食药处的进口不合格名单只公开最近约半年（本站最早的韩国记录是 2026 年 5 月），本站每天保存新记录，更早的无法补齐。</li>
         <li>欧盟 Safety Gate 是欧盟的非食品危险产品预警系统，收录玩具、电器、化妆品、儿童用品等。记录包含品牌、型号、条码、网上销售平台和产品照片，照片直接显示欧盟官方图片。</li>
         <li>欧盟 RASFF 部分通报附有各国官方或零售商的公开警示页面。我们从这些页面收集产品照片，经人工核对后才显示，并注明图片来源。</li>
+        <li>新加坡不公布进口拒收记录，本站收录的是新加坡食品局对已上市中国食品的召回通报。食品局事后撤销的召回标为"召回已撤销"，并写明原因。</li>
         <li>条数多不等于问题率高。中国的出口量很大，不合格率需要结合进口总批数来看。</li>
         <li>FDA 只公布企业英文名。中文名只在人工核实（对照工商登记信息）后显示，标"已核实"。</li>
         <li>FDA 产品名称和拒收原因由我们翻译成中文。新出现的名称先用 AI 自动翻译，标有"机翻"，人工核对后去掉标记。日本、欧盟、韩国的内容也是 AI 翻译，问题类型由 AI 归类。一切以官方原文为准。</li>
@@ -279,10 +283,10 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
   var CRIT = ["农药残留", "兽药残留", "污染物", "微生物", "化学有害物", "窒息/勒颈", "触电", "火灾/烧伤", "溺水"];
   var WARN = ["色素/添加剂", "材质/溶出", "卫生/生产", "受伤", "视力/听力损伤", "环境危害"];
   var SOON = ["新加坡 SFA", "泰国 FDA", "越南"];
-  var SRC = ["US", "TW", "JP", "EU", "KR", "SG"];
-  var SRC_NAME = { US: "美国", TW: "台湾", JP: "日本", EU: "欧盟", KR: "韩国", SG: "欧盟·非食品" };
-  var SRC_FULL = { US: "美国 FDA", TW: "台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处", SG: "欧盟 Safety Gate" };
-  var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文", SG: "Safety Gate 原文" };
+  var SRC = ["US", "TW", "JP", "EU", "KR", "SG", "SFA"];
+  var SRC_NAME = { US: "美国", TW: "台湾", JP: "日本", EU: "欧盟", KR: "韩国", SG: "欧盟·非食品", SFA: "新加坡" };
+  var SRC_FULL = { US: "美国 FDA", TW: "台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处", SG: "欧盟 Safety Gate", SFA: "新加坡 食品局" };
+  var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文", SG: "Safety Gate 原文", SFA: "食品局原文" };
   var SG_IMG = "https://ec.europa.eu/safety-gate-alerts/public/api/notification/";
   var PER = 30;
   var all = [], meta = null, view = [], page = 1, cache = {}, range = { from: "", to: "" };
@@ -453,14 +457,14 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       if (r.q) det += '<div class="small">数量：' + esc(r.q) + " · " + esc(r.act) + "</div>";
       else if (r.act) det += '<div class="small">处理：' + esc(r.act) + "</div>";
       if (r.o) det += '<div class="small">' + esc(r.o) + "</div>";
-      var firm = r.src === "SG" ? (r.f ? '<span class="small">品牌：</span>' + esc(r.f) : '<span class="small">品牌未公开</span>') :
+      var firm = (r.src === "SG" || r.src === "SFA") ? (r.f ? '<span class="small">品牌：</span>' + esc(r.f) : '<span class="small">品牌未公开</span>') :
         (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">中文名：' + esc(r.fz) + "（已核实）</div>" : "") +
         (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
       var link = LINK[r.src] || "原文";
-      return '<tr class="sev-' + sev(r.prob) + '">' +
+      return '<tr class="sev-' + (r.nt === "召回已撤销" ? "calm" : sev(r.prob)) + '">' +
         '<td class="date" data-k="日期">' + esc(r.d) + "</td>" +
-        '<td data-k="来源"><span class="pill ' + r.src.toLowerCase() + '">' + (SRC_NAME[r.src] || r.src) + "</span>" + (r.nt ? '<div><span class="pill nt">' + esc(r.nt) + "</span></div>" : "") + "</td>" +
+        '<td data-k="来源"><span class="pill ' + r.src.toLowerCase() + '">' + (SRC_NAME[r.src] || r.src) + "</span>" + (r.nt ? '<div><span class="pill nt' + (r.nt === "召回已撤销" ? " ok" : "") + '">' + esc(r.nt) + "</span></div>" : "") + "</td>" +
         '<td><div class="prod">' + esc(r.p) + (r.mt ? '<span class="pill mt" title="机器翻译，待人工核对">机翻</span>' : "") + '</div><div class="small">' + cat + "</div>" + thumbs(r) + "</td>" +
         '<td><div class="pills">' + probs + "</div>" + det + "</td>" +
         '<td class="firm" data-k="企业">' + firm + "</td>" +

@@ -15,6 +15,7 @@ SOURCES = {
     "EU": {"name": "欧盟 食品和饲料快速预警系统 (RASFF)", "url": "https://webgate.ec.europa.eu/rasff-window/screen/search"},
     "KR": {"name": "韩国 食品医药品安全处 进口食品不合格", "url": "https://impfood.mfds.go.kr/CFCEE01F01"},
     "SG": {"name": "欧盟 非食品危险产品预警 (Safety Gate)", "url": "https://ec.europa.eu/safety-gate-alerts/screen/webReport"},
+    "SFA": {"name": "新加坡 食品局 食品召回", "url": "https://www.sfa.gov.sg/news-publications/newsroom"},
 }
 INTL = ("JP", "EU", "KR", "SG")
 

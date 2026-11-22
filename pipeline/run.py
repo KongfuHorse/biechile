@@ -2,7 +2,7 @@
   python -m pipeline.run                     # daily update: new TW notices + FDA last 30 days, then export
   python -m pipeline.run --since 2023-01-01  # backfill from a date
   python -m pipeline.run --export-only       # only rebuild the website JSON files
-  python -m pipeline.run --skip tw us        # skip sources: tw us jp eu kr sg img
+  python -m pipeline.run --skip tw us        # skip sources: tw us jp eu kr sg sfa img
 """
 import argparse
 import os
@@ -10,7 +10,7 @@ import sys
 import traceback
 from datetime import date, timedelta
 
-from . import db, eu, export, firms, images, jp, kr, mt, normalize, sg, sources
+from . import db, eu, export, firms, images, jp, kr, mt, normalize, sfa, sg, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
 
@@ -94,7 +94,42 @@ def run_sg(since_arg, cache):
     db.log_run("SG", fetched, stored, "ok", f"since={since} skipped_existing={len(have)}")
 
 
+def run_sfa(since_arg, cache):
+    """Singapore Food Agency recalls. Daily run looks at the last 45 days.
+    If SFA later says a recall was wrong or lifted, the earlier record is marked, not deleted."""
+    since = since_arg or (date.today() - timedelta(days=45)).isoformat()
+    stored = db.fetch_table("records", "id,product,product_orig,ntype,note", "&src=eq.SFA&order=pub_date")
+    by_key = {sfa.key({"name_en": r["product_orig"], "name_zh": r["product"]}): r for r in stored}
+    recs, marked = {}, 0
+    for a, prods in sfa.fetch(since, known=by_key.keys()):
+        for i, p in prods:
+            k = sfa.key(p)
+            rec = sfa.normalize(a, i, p)
+            if p.get("withdrawn"):
+                why = "新加坡食品局已撤销召回：" + (p.get("withdrawn_zh") or "原检测结果不成立")
+                base = lambda note: "；".join(x for x in (note or "").split("；") if x and not x.startswith("新加坡食品局已撤销召回"))
+                old = by_key.get(k)
+                if old and old["id"] != rec["id"]:
+                    old["ntype"] = "召回已撤销"
+                    old["note"] = why + f"（{a['lastPublished'][:10]} 更新）；" + base(old.get("note"))
+                    if old["id"] in recs:
+                        recs[old["id"]].update(ntype=old["ntype"], note=old["note"])
+                    else:
+                        db.update(old["id"], {"ntype": old["ntype"], "note": old["note"]})
+                    marked += 1
+                    continue
+                rec["ntype"] = "召回已撤销"
+                rec["note"] = why + "；" + base(rec["note"])
+            recs[rec["id"]] = rec
+            by_key[k] = rec
+    n = db.upsert(list(recs.values())) if recs else 0
+    print(f"  SFA: {n} records, {marked} earlier recalls marked as withdrawn", flush=True)
+    db.log_run("SFA", len(recs), n, "ok", f"since={since} withdrawn_marked={marked}")
+
+
 def run_intl(key, since_arg, cache):
+    if key == "sfa":
+        return run_sfa(since_arg, cache)
     if key == "eu":
         return run_eu(since_arg, cache)
     if key == "sg":
@@ -117,7 +152,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", help="backfill start date YYYY-MM-DD")
     ap.add_argument("--export-only", action="store_true")
-    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg img")
+    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa img")
     a = ap.parse_args()
     print("storage:", "Supabase" if db.using_supabase() else "local file")
     failed = False
@@ -155,7 +190,7 @@ def main():
 
         # Japan, EU, Korea
         cache = None
-        for key in ("jp", "eu", "kr", "sg"):
+        for key in ("jp", "eu", "kr", "sg", "sfa"):
             if key in a.skip:
                 continue
             try:

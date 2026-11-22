@@ -185,7 +185,7 @@
   <!-- 产品图片 -->
   <section id="tab-images" class="card hidden">
     <div class="help">
-      欧盟 RASFF 通报里附了各国官方或零售商的警示页面。每日任务会打开这些页面收集图片，AI 先判断哪张是产品照片（绿框）。
+      欧盟 RASFF 通报里附了各国官方或零售商的警示页面，新加坡食品局的召回通报也有产品照片。每日任务会打开这些页面收集图片，AI 先判断哪张是产品照片（绿框）。
       <ul>
         <li>点图片可以切换"通过 / 不通过"，再点"保存本条"。只有"通过"的图片会显示在网站上，下一次每日更新后生效。</li>
         <li>"采用 AI 推荐"会把本条中 AI 认为是产品照片的图设为通过，其余设为不通过。</li>
@@ -482,7 +482,7 @@ function renderImages() {
         <button type="button" data-ai="${ri}">采用 AI 推荐</button>
         <button type="button" data-none="${ri}">全部不通过</button>
         ${pages.map(u => `<a class="small" href="${esc(u)}" target="_blank" rel="noopener">打开警示页</a>`).join(" ")}
-        <a class="small" href="${esc(r.url)}" target="_blank" rel="noopener">RASFF 原文</a>
+        <a class="small" href="${esc(r.url)}" target="_blank" rel="noopener">通报原文</a>
       </div></div>`;
   }).join("") || `<p class="muted">没有需要审核的图片。</p>`;
 }

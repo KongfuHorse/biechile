@@ -83,6 +83,19 @@ def fetch_table(name, select="*", query=""):
             return out
 
 
+def update(record_id, fields):
+    """Change some columns of one record."""
+    if not using_supabase():
+        rec = _load_local().get(record_id)
+        if rec:
+            rec.update(fields)
+            upsert([rec])
+        return
+    r = requests.patch(f"{URL}/rest/v1/records?id=eq.{requests.utils.quote(record_id, safe='')}", json=fields,
+                       headers=_h({"Prefer": "return=minimal"}), timeout=60)
+    r.raise_for_status()
+
+
 def ids(src):
     """All record ids of one source."""
     if not using_supabase():

@@ -1,4 +1,4 @@
-"""Product photos for EU RASFF records.
+"""Product photos for EU RASFF records and Singapore SFA recalls.
 
 RASFF Window has no photos, but some measures link to a public warning page of a national
 authority or a retailer. We open each linked page once, collect the larger images, ask Claude
@@ -171,8 +171,9 @@ def process_record(rec, page_url):
             break
     if not imgs:
         return "no_images", 0
-    raw = (rec.get("raw") or {}).get("summary") or {}
-    checks = ai_check(raw.get("subject") or "", rec.get("product_orig") or "", imgs)
+    raw = rec.get("raw") or {}
+    subject = ((raw.get("summary") or {}).get("subject") or ((raw.get("article") or {}).get("title")) or "")
+    checks = ai_check(subject, rec.get("product_orig") or "", imgs)
     rows = []
     for im, (ok, note) in zip(imgs, checks):
         path = f"{rec['id']}/{im['hash']}.webp"
@@ -187,10 +188,11 @@ def run(limit=400):
     """Process EU records whose warning pages have not been opened yet."""
     if not db.using_supabase():
         return 0, 0
-    recs = db.fetch_table("records", "id,product_orig,raw", "&src=eq.EU&order=pub_date.desc")
+    recs = db.fetch_table("records", "id,src,url,product_orig,raw", "&src=in.(EU,SFA)&order=pub_date.desc")
     done = {(p["record_id"], p["page_url"]) for p in db.fetch_table("image_pages", "record_id,page_url",
                                                                      "&order=record_id,page_url")}
-    todo = [(r, u) for r in recs for u in measure_urls(r) if (r["id"], u) not in done][:limit]
+    urls = lambda r: [r["url"]] if r["src"] == "SFA" else measure_urls(r)
+    todo = [(r, u) for r in recs for u in urls(r) if (r["id"], u) not in done][:limit]
     pages = found = 0
     for rec, u in todo:
         try:
