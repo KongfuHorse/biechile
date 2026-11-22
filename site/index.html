@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>中国产品境外通报</title>
+<title>别吃了！中国食品产品境外通报汇总</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
@@ -17,6 +17,7 @@
   --muted: #5b6672;
   --line: #dce1e6;
   --accent: #0f5c6e;
+  --logo: #1677ff;
   --us: #3d5d9c;
   --tw: #2c8570;
   --jp: #b5475b;
@@ -37,13 +38,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-    --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --cpsc: #a9b8d6; --au: #e3c35d; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+    --accent: #62b4c6; --logo: #4096ff; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --cpsc: #a9b8d6; --au: #e3c35d; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-  --accent: #62b4c6; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --cpsc: #a9b8d6; --au: #e3c35d; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+  --accent: #62b4c6; --logo: #4096ff; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --cpsc: #a9b8d6; --au: #e3c35d; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
   color-scheme: dark;
 }
 
@@ -56,7 +57,11 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 
 header { background: var(--surface); border-bottom: 1px solid var(--line); }
 header .wrap { padding-top: 28px; padding-bottom: 20px; display: grid; gap: 10px; }
-h1 { font-family: var(--font-display); font-size: 28px; line-height: 1.25; margin: 0; text-wrap: balance; }
+h1 { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+/* logo: 别吃了！ in Noto Sans SC Black as outlines, so it needs no web font */
+h1 .logo { display: block; height: 64px; width: auto; color: var(--logo); transform: skewX(-12deg); transform-origin: left bottom; }
+h1 .h-sub { font-family: var(--font-display); font-size: 22px; line-height: 1.4; font-weight: 700; }
+@media (max-width: 600px) { h1 .logo { height: 48px; } h1 .h-sub { font-size: 18px; } }
 .lede { margin: 0; color: var(--muted); max-width: 62ch; }
 .sources { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .src-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--chip); color: var(--muted); border: 1px solid transparent; }
@@ -179,7 +184,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 <body>
 <header>
   <div class="wrap">
-    <h1>中国产品境外通报汇总</h1>
+    <h1><svg class="logo" viewBox="4 15 3448 975" role="img" aria-label="别吃了！"><path fill="currentColor" d="M584 148H725V720H584ZM792 46H936V807Q936 864 924.0 896.5Q912 929 880 947Q847 965 799.5 970.5Q752 976 688 976Q684 944 670.5 900.0Q657 856 642 825Q681 827 718.0 827.5Q755 828 768 828Q782 828 787.0 823.5Q792 819 792 806ZM204 195V301H361V195ZM73 68H501V429H73ZM51 496H448V627H51ZM389 496H530Q530 496 529.5 505.5Q529 515 529.0 527.5Q529 540 528 549Q525 663 520.0 737.0Q515 811 507.0 852.5Q499 894 485 912Q468 934 450.0 943.5Q432 953 409 958Q390 962 360.5 963.0Q331 964 297 964Q296 932 285.5 893.5Q275 855 258 827Q281 829 300.5 830.0Q320 831 332 831Q342 831 348.5 828.0Q355 825 362 818Q369 808 374.0 776.5Q379 745 383.0 682.5Q387 620 389 518ZM188 447H324Q321 538 312.5 617.5Q304 697 281.5 764.0Q259 831 215.5 885.0Q172 939 98 980Q86 954 61.5 922.0Q37 890 14 871Q75 839 109.0 797.0Q143 755 159.5 702.0Q176 649 181.0 585.5Q186 522 188 447Z M1164 109H1404V720H1164V579H1273V249H1164ZM1089 109H1221V802H1089ZM1518 158H1982V293H1518ZM1499 377H1833V511H1499ZM1545 25 1688 60Q1665 130 1631.5 197.5Q1598 265 1559.5 323.5Q1521 382 1479 425Q1466 412 1444.5 393.5Q1423 375 1401.0 357.5Q1379 340 1362 329Q1422 276 1470.0 194.5Q1518 113 1545 25ZM1811 377H1834L1866 373L1963 428Q1960 433 1955.0 440.0Q1950 447 1944 453Q1842 529 1774.5 581.5Q1707 634 1667.5 669.0Q1628 704 1609.0 726.0Q1590 748 1584.0 761.0Q1578 774 1578 784Q1578 802 1594.5 809.0Q1611 816 1641 816H1831Q1849 816 1860.5 807.5Q1872 799 1878.5 770.5Q1885 742 1887 682Q1917 698 1950.5 710.0Q1984 722 2016 728Q2009 822 1986.5 872.0Q1964 922 1924.0 940.0Q1884 958 1822 958H1644Q1532 958 1480.0 916.0Q1428 874 1428 805Q1428 783 1433.5 760.0Q1439 737 1458.5 706.0Q1478 675 1519.0 631.5Q1560 588 1631.0 525.5Q1702 463 1811 377Z M2489 380H2643V815Q2643 873 2627.0 905.0Q2611 937 2569 953Q2527 969 2471.0 973.5Q2415 978 2345 977Q2339 945 2321.5 902.0Q2304 859 2287 830Q2319 831 2354.5 832.0Q2390 833 2419.0 833.0Q2448 833 2459 833Q2476 833 2482.5 828.5Q2489 824 2489 811ZM2152 90H2837V234H2152ZM2794 90H2835L2868 82L2984 169Q2931 225 2865.5 283.5Q2800 342 2729.0 394.0Q2658 446 2586 485Q2575 469 2557.5 449.5Q2540 430 2522.0 411.0Q2504 392 2489 380Q2534 356 2579.5 323.5Q2625 291 2667.0 255.5Q2709 220 2742.0 186.5Q2775 153 2794 126Z M3278 614 3248 298 3242 132H3438L3432 298L3402 614ZM3340 892Q3295 892 3266.5 863.0Q3238 834 3238 790Q3238 746 3267.0 718.0Q3296 690 3340 690Q3384 690 3413.0 718.0Q3442 746 3442 790Q3442 834 3413.0 863.0Q3384 892 3340 892Z"/></svg><span class="h-sub">中国食品产品境外通报汇总</span></h1>
     <p class="lede">汇集各国家和地区监管机构公布的中国产品边境不合格、拒收通报。每条记录都附官方原文链接，以原文为准。</p>
     <div class="sources" id="sources" aria-label="数据来源"></div>
   </div>
