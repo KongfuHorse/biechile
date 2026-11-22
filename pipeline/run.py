@@ -167,7 +167,12 @@ def main():
             try:
                 since = a.since or (date.today() - timedelta(days=60)).isoformat()
                 stop = 0 if a.since else db.max_tw_id()
-                raw = sources.fetch_tw(since, stop_id=stop)
+                start = None
+                if a.since:  # going further back: start below the oldest notice already stored
+                    oid, odate = db.oldest_tw()
+                    if odate and a.since < odate:
+                        start = oid
+                raw = sources.fetch_tw(since, stop_id=stop, start_id=start)
                 n = db.upsert([normalize.normalize_tw(r) for r in raw])
                 db.log_run("TW", len(raw), n, "ok", f"since={since} stop_id={stop}")
             except Exception:

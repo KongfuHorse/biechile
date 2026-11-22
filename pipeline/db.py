@@ -111,6 +111,17 @@ def ids(src):
             return out
 
 
+def oldest_tw():
+    """(id, publish date) of the oldest Taiwan notice stored, or (0, None)."""
+    if not using_supabase():
+        return 0, None
+    r = requests.get(f"{URL}/rest/v1/records?select=pub_date,tid:raw->>id&src=eq.TW&order=pub_date.asc&limit=50",
+                     headers=_h(), timeout=60)
+    r.raise_for_status()
+    rows = [x for x in r.json() if x.get("tid")]
+    return (min(int(x["tid"]) for x in rows), rows[0]["pub_date"]) if rows else (0, None)
+
+
 def max_tw_id():
     """Highest Taiwan notice id already stored (0 if none)."""
     if using_supabase():

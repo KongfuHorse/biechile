@@ -42,11 +42,11 @@ def tw_parse(html, rid):
     return rec if rec.get("publish_date") else None
 
 
-def fetch_tw(since, stop_id=0, delay=0.5, max_misses=200):
-    """Walk notice ids from newest down. Stop at stop_id (already stored) or when dates go older than `since`.
-    Returns China-origin records only."""
+def fetch_tw(since, stop_id=0, delay=0.5, max_misses=200, start_id=None):
+    """Walk notice ids from newest (or from start_id) down. Stop at stop_id (already stored) or when dates
+    go older than `since`. Returns China-origin records only."""
     s = requests.Session(); s.headers.update(UA)
-    rid = tw_latest_id(s) + 5
+    rid = start_id if start_id else tw_latest_id(s) + 5
     out, misses, older = [], 0, 0
     while rid > stop_id and misses < max_misses and older < 20:
         try:
