@@ -4,6 +4,7 @@ Without them: uses a local file local_data/records.jsonl (for testing on your ow
 """
 import json
 import os
+import re
 
 import requests
 
@@ -54,17 +55,33 @@ def upsert(records):
 
 
 def fetch_all(columns="*"):
-    """All records, newest first."""
+    """All records, newest first.
+
+    Pages continue from the last row of the previous page (pub_date, id) instead of skipping N rows:
+    skipping made the last pages scan the whole table and hit the database time limit."""
     if using_supabase():
-        out, step = [], 1000
+        out, step, after, total = [], 1000, None, None
+        cols = columns if columns == "*" or re.search(r"(^|,)pub_date(,|$)", columns) else "pub_date," + columns
+        if not re.search(r"(^|,)id(,|$)", cols) and cols != "*":
+            cols = "id," + cols
         while True:
-            r = requests.get(f"{URL}/rest/v1/records?select={columns}&order=pub_date.desc,id.asc",
-                             headers=_h({"Range-Unit": "items", "Range": f"{len(out)}-{len(out) + step - 1}"}), timeout=120)
+            q = {"select": cols, "order": "pub_date.desc,id.asc", "limit": str(step)}
+            if after:
+                d, i = after
+                i = '"' + i.replace("\\", "\\\\").replace('"', '\\"') + '"'
+                q["or"] = f"(pub_date.lt.{d},and(pub_date.eq.{d},id.gt.{i}))"
+            r = requests.get(f"{URL}/rest/v1/records", params=q,
+                             headers=_h({"Prefer": "count=exact"} if total is None else {}), timeout=120)
             r.raise_for_status()
+            if total is None:
+                total = int(r.headers.get("Content-Range", "*/-1").split("/")[-1])
             batch = r.json()
             out += batch
             if len(batch) < step:
+                if total >= 0 and len(out) != total:
+                    raise RuntimeError(f"fetch_all read {len(out)} records but the table has {total}")
                 return out
+            after = (batch[-1]["pub_date"], batch[-1]["id"])
     return sorted(_load_local().values(), key=lambda r: (r["pub_date"], r["id"]), reverse=True)
 
 
