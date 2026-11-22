@@ -62,6 +62,17 @@ def candidates(page_url, text):
             if m:
                 found.append(m.group(1))
                 break
+    # images loaded by script (Adobe AEM "cmp-image", used by several government sites): the original file is
+    # in data-asset, and data-cmp-src is a template with {.width}
+    for tag in re.findall(r'<div\b[^>]*data-cmp-src=[^>]*>', body, re.I):
+        asset = re.search(r'data-asset=["\']([^"\']+)', tag)
+        if asset and re.search(r"\.(jpe?g|png|webp)$", asset.group(1), re.I):
+            found.append(asset.group(1))
+        src = re.search(r'data-cmp-src=["\']([^"\']+)', tag)
+        if src:
+            widths = re.search(r'data-cmp-widths=["\']([^"\']+)', tag)
+            w = max((int(x) for x in re.findall(r"\d+", widths.group(1))), default=0) if widths else 0
+            found.append(src.group(1).replace("{.width}", f".{w}" if w else ""))
     found += re.findall(r'<a[^>]+href=["\']([^"\']+\.(?:jpe?g|png|webp))(?:\?[^"\']*)?["\']', body, re.I)
     out = []
     for u in found:
