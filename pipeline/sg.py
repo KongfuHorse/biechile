@@ -111,7 +111,10 @@ def parse_report(xml):
 def fetch_reports(since):
     """Yield (report_reference, [records]) one week at a time."""
     for ref, d, url in reports(since):
-        yield ref, parse_report(_get(url))
+        recs = parse_report(_get(url))
+        for r in recs:
+            r["reportDate"] = d.isoformat()  # some older notifications have no publication date
+        yield ref, recs
 
 
 def rec_id(r):
@@ -193,7 +196,8 @@ def normalize(r, tr):
         facts.append("专业用途产品")
     return {
         "id": rec_id(r), "src": "SG",
-        "pub_date": dt.datetime.strptime(r["publicationDate"], "%d-%m-%Y").date().isoformat(),
+        "pub_date": (dt.datetime.strptime(r["publicationDate"], "%d-%m-%Y").date().isoformat()
+                     if r.get("publicationDate") else r.get("reportDate")),
         "insp_date": None, "grp": group(r), "ind": "", "ntype": LEVEL.get(r["level"].lower(), r["level"]),
         "product": tr.get("product") or product_text(r), "product_orig": product_text(r),
         "problems": problems(r), "detail": tr.get("detail") or detail_text(r), "legal_limit": "",
