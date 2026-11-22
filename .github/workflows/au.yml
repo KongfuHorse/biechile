@@ -1,0 +1,45 @@
+name: Australia (runs on the Mac)
+
+# The Australian site drops requests from cloud servers (GitHub, Supabase), so this job
+# runs on the self-hosted runner on Bohan's Mac. The report is published once a month.
+# The next daily run puts the new records on the website.
+
+on:
+  schedule:
+    - cron: "17 14 15 * *"   # the 15th of each month, 14:17 UTC (9:17 New York, winter time)
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Backfill from date (YYYY-MM-DD). Leave empty for the last 120 days."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  au:
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Python environment
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q -r requirements.txt
+
+      - name: Fetch Australia failing food reports
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PYTHONUNBUFFERED: "1"
+          AU_STRICT: "1"
+        run: |
+          SKIP="tw us jp eu kr sg sfa cpsc img"
+          if [ -n "${{ github.event.inputs.since }}" ]; then
+            .venv/bin/python -m pipeline.run --since "${{ github.event.inputs.since }}" --skip $SKIP
+          else
+            .venv/bin/python -m pipeline.run --skip $SKIP
+          fi

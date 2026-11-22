@@ -208,6 +208,8 @@ def main():
             except au.Blocked as e:
                 print(f"  AU skipped: {e}", flush=True)
                 db.log_run("AU", 0, 0, "blocked", str(e))
+                if os.environ.get("AU_STRICT"):  # on the Mac a block is a real failure
+                    failed = True
             except Exception:
                 failed = True
                 db.log_run(key.upper(), 0, 0, "error", traceback.format_exc())

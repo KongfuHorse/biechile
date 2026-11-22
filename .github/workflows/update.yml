@@ -10,7 +10,7 @@ on:
         required: false
         default: ""
       skip:
-        description: "Sources to skip, separated by spaces (tw us jp eu kr). Leave empty to run all."
+        description: "Sources to skip, separated by spaces (tw us jp eu kr sg sfa cpsc img). Australia (au) always runs on the Mac, see au.yml."
         required: false
         default: ""
   push:
@@ -54,9 +54,9 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ]; then
             python -m pipeline.run --export-only
           elif [ -n "${{ github.event.inputs.since }}" ]; then
-            python -m pipeline.run --since "${{ github.event.inputs.since }}" --skip ${{ github.event.inputs.skip }}
+            python -m pipeline.run --since "${{ github.event.inputs.since }}" --skip au ${{ github.event.inputs.skip }}
           else
-            python -m pipeline.run --skip ${{ github.event.inputs.skip }}
+            python -m pipeline.run --skip au ${{ github.event.inputs.skip }}
           fi
 
       - name: Add Cloudflare Web Analytics
