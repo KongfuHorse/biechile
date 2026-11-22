@@ -18,6 +18,10 @@ from . import mt
 BASE = "https://www.sfa.gov.sg"
 API = BASE + "/api/newsroom/search"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36"}
+class Blocked(Exception):
+    """SFA's firewall answers cloud servers (such as GitHub's) with an empty 202 page."""
+
+
 RECALL = re.compile(r"recall|adulterat|found to contain|not permitted|unsafe|contaminat", re.I)
 
 
@@ -28,6 +32,8 @@ def articles(since):
         r = requests.get(API, params={"page": page, "limit": 100, "contentTypes": "12,15,16,13,17,14"},
                          headers=UA, timeout=60)
         r.raise_for_status()
+        if r.status_code == 202 or not r.content:
+            raise Blocked("SFA site blocked this server (HTTP 202, empty page)")
         d = r.json()
         items = [i for i in d.get("items") or [] if i.get("lastPublished")]
         out += [i for i in items if i["lastPublished"][:10] >= since and RECALL.search(i.get("title") or "")]
