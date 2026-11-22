@@ -90,7 +90,8 @@ def fetch_image(url):
     im = Image.open(io.BytesIO(r.content))
     im.load()
     w, h = im.size
-    if min(w, h) < 180 or max(w, h) / max(1, min(w, h)) > 3.2:
+    # banners are wide; long products (spatulas, chopsticks, cables) give tall photos, so allow those further
+    if min(w, h) < 180 or w / max(1, h) > 3.2 or h / max(1, w) > 5:
         return None
     im = im.convert("RGB")
     im.thumbnail((900, 900))
