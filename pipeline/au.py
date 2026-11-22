@@ -31,15 +31,20 @@ class Blocked(Exception):
 
 
 def _get(url, **kw):
-    for attempt in range(3):
+    for attempt in range(4):
         try:
-            r = requests.get(url, headers=UA, timeout=60, **kw)
+            r = requests.get(url, headers=UA, timeout=90, **kw)
             r.raise_for_status()
+            if url.lower().endswith(".csv") and r.content.lstrip()[:1] == b"<":
+                raise requests.HTTPError(f"got a web page instead of the CSV: {url}")
             return r
         except (requests.ConnectionError, requests.Timeout) as e:
-            if attempt == 2:
+            if attempt == 3:
                 raise Blocked(f"{url}: {type(e).__name__}") from e
-            time.sleep(5 * (attempt + 1))
+        except requests.HTTPError:
+            if attempt == 3:
+                raise
+        time.sleep(10 * (attempt + 1))
 
 
 def reports(since):
@@ -76,30 +81,77 @@ def _text(raw):
     return raw.decode("utf-8", "replace")
 
 
+HEAD = [  # header text -> field; first match wins, checked in this order
+    ("date", r"date of fail"), ("product", r"product"), ("country", r"count?r?y\s+of\s+origin"),
+    ("producer", r"producer"), ("both", r"test applied\s*/\s*reason|test applied/"), ("test", r"^test applied$"),
+    ("reason", r"reason for fail"), ("units", r"^units$"), ("result", r"result"),
+    ("criteria", r"reference|standard"), ("category", r"categ"), ("ho", r"holding order"),
+]
+DEFAULT = {"date": 0, "product": 1, "country": 2, "producer": 3, "both": 4, "result": 5, "criteria": 6, "category": 7}
+
+
+def _columns(head):
+    cols = {}
+    for i, h in enumerate(c.lower().strip() for c in head):
+        for key, pat in HEAD:
+            if key not in cols and re.search(pat, h):
+                cols[key] = i
+                break
+    has_reason = any(k in cols for k in ("both", "reason", "test"))
+    return cols if "date" in cols and "product" in cols and has_reason else None
+
+
 def parse(text):
-    recs = []
+    recs, cols, section = [], DEFAULT, ""
     for row in csv.reader(io.StringIO(text)):
-        cells = [re.sub(r"\s+", " ", c).strip() for c in row[:8]]
-        cells += [""] * (8 - len(cells))
+        cells = [re.sub(r"\s+", " ", c).strip() for c in row]
         if not any(cells):
             continue
-        date = _date(cells[0])
-        if date:
-            recs.append(dict(zip(FIELDS, cells), date=date))
-        elif not cells[0] and recs:  # another test on the product above
-            last = recs[-1]
-            if cells[4]:
-                last["reason"] = "；".join(x for x in (last["reason"], cells[4]) if x)
-            if cells[5]:
-                last["result"] = ", ".join(x for x in (last["result"].rstrip(", "), cells[5].rstrip(", ")) if x)
-        # anything else is a header row
+        got = (lambda k: cells[cols[k]] if k in cols and cols[k] < len(cells) else "")
+        if any(re.search(r"date of fail", c, re.I) for c in cells):
+            cols = _columns(cells) or DEFAULT
+            continue
+        date = _date(got("date"))
+        if not date:
+            filled = [c for c in cells if c]
+            if len(filled) == 1 and not got("date") and not recs or (len(filled) == 1 and cells[0]):
+                section = filled[0]  # a title row such as "Risk food tests"
+                continue
+            if not got("date") and recs:  # another test on the product above
+                last = recs[-1]
+                reason = got("both") or got("reason") or got("test")
+                result = " ".join(x for x in (got("result"), got("units")) if x and x.lower() not in ("n/a", "na"))
+                if reason:
+                    last["reason"] = "；".join(x for x in (last["reason"], reason) if x)
+                if result:
+                    last["result"] = ", ".join(x for x in (last["result"].rstrip(", "), result.rstrip(", ")) if x)
+            continue
+        test, reason = got("test"), got("reason")
+        if got("both"):
+            reason = got("both")
+        elif test and reason and test.lower() not in reason.lower():
+            reason = f"{test}: {reason}"
+        else:
+            reason = reason or test
+        units = got("units")
+        result = got("result")
+        if units and units.lower() not in ("n/a", "na") and result.lower() not in ("n/a", "na", ""):
+            result = f"{result} {units}"
+        recs.append({"date": date, "product": got("product"), "country": got("country"), "producer": got("producer"),
+                     "reason": reason, "result": result, "criteria": got("criteria"),
+                     "category": got("category") or section})
     return recs
 
 
 def fetch(since):
     out = []
     for month, res in reports(since):
-        for r in parse(_text(_get(res["url"]).content)):
+        try:
+            text = _text(_get(res["url"]).content)
+        except Exception as e:  # one month failing should not stop the rest; the daily run retries recent months
+            print(f"  AU {month:%Y-%m} skipped: {type(e).__name__}: {e}"[:200], flush=True)
+            continue
+        for r in parse(text):
             if re.fullmatch(r"(people'?s republic of )?china", r["country"], re.I) and r["date"] >= since:
                 r["url"] = PAGE + res["id"]
                 r["report"] = f"{month.year}-{month.month:02d}"
@@ -119,7 +171,7 @@ def detail_text(r):
 
 def normalize(r, tr):
     cat = r.get("category", "").lower()
-    kind = "风险食品检查" if cat.startswith("risk") else "随机监测" if cat.startswith("surv") else ""
+    kind = "风险食品检查" if "risk" in cat else "随机监测" if "surv" in cat else ""
     note = []
     if r.get("result"):
         note.append("检测结果：" + r["result"])
