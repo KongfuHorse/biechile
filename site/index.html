@@ -106,6 +106,9 @@ button.bar-row:hover .lab { color: var(--accent); }
 .bar-row .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
 .bar-row.active .lab { font-weight: 700; color: var(--accent); }
 
+td.rank { color: var(--muted); font-variant-numeric: tabular-nums; }
+td.num { font-weight: 700; font-variant-numeric: tabular-nums; }
+.todo { color: var(--muted); }
 .list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .list-head h2 { font-size: 17px; margin: 0; }
 .count { font-size: 13px; color: var(--muted); }
@@ -193,7 +196,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 <main>
   <div class="wrap">
     <section class="controls" aria-label="筛选">
-      <div class="seg" role="group" aria-label="产品范围">
+      <div class="seg" id="scope" role="group" aria-label="产品范围">
         <button type="button" data-scope="food" aria-pressed="true">食品相关</button>
         <button type="button" data-scope="nonfood" aria-pressed="false">非食品</button>
         <button type="button" data-scope="all" aria-pressed="false">全部</button>
@@ -245,12 +248,23 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <h2>通报记录</h2>
         <span class="count" id="count"></span>
       </div>
-      <div class="table-box" style="margin-top:10px">
+      <div class="seg" id="tabs" role="group" aria-label="列表方式" style="margin-top:10px">
+        <button type="button" data-tab="list" aria-pressed="true">全部通报（从新到旧）</button>
+        <button type="button" data-tab="firms" aria-pressed="false">企业上榜次数</button>
+      </div>
+      <div class="table-box" id="list-box" style="margin-top:10px">
         <table>
           <thead><tr><th>日期</th><th>来源</th><th>产品</th><th>问题和检出情况</th><th>企业</th><th>检测</th><th>原文</th></tr></thead>
           <tbody id="rows"><tr><td colspan="7" class="empty">正在加载数据…</td></tr></tbody>
         </table>
       </div>
+      <div class="table-box" id="firm-box" style="margin-top:10px" hidden>
+        <table>
+          <thead><tr><th>排名</th><th>企业</th><th>中文名</th><th>上榜次数</th><th>通报来源</th><th>最近一次</th><th>主要问题</th></tr></thead>
+          <tbody id="firm-rows"></tbody>
+        </table>
+      </div>
+      <p class="small" id="firm-note" style="margin:8px 2px 0" hidden>按当前筛选条件统计，一条通报算一次。英文名按大小写、标点和 CO./COMPANY 这类写法归并。欧盟 RASFF 不公开企业名，欧盟 Safety Gate 和新加坡食品局只给品牌，这三个来源不计入。中文名由人工逐个核实，未核实的显示“待核实”。</p>
       <div class="pager" style="margin-top:12px">
         <button type="button" id="prev">上一页</button>
         <span id="page"></span>
@@ -300,7 +314,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
   var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文", SG: "Safety Gate 原文", SFA: "食品局原文", CPSC: "CPSC 原文", AU: "澳大利亚原表" };
   var SG_IMG = "https://ec.europa.eu/safety-gate-alerts/public/api/notification/";
   var PER = 30;
-  var all = [], meta = null, view = [], fuzzy = false, page = 1, cache = {}, range = { from: "", to: "" };
+  var all = [], meta = null, view = [], fuzzy = false, page = 1, tab = "list", firms = [], firmPage = 1, cache = {}, range = { from: "", to: "" };
   var st = { scope: "food", src: "", grp: "", prob: "", q: "", lab: false, period: "12m" };
 
   function $(id) { return document.getElementById(id); }
@@ -440,7 +454,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     var res = Search.run(filtered, st.q);
     view = res.rows; fuzzy = res.fuzzy && view.length > 0;
     page = 1;
-    renderTiles(); renderMonth(); renderProb(); renderRows();
+    renderTiles(); renderMonth(); renderProb(); firmPage = 1; renderList();
   }
 
   function renderTiles() {
@@ -540,6 +554,63 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     $("lb-src").href = r.u;
     $("lb").classList.add("on");
   }
+  /* firm ranking: records grouped by normalized firm name */
+  var NO_FIRM = { EU: 1, SG: 1, SFA: 1 };  // no firm names, or brands only
+  var CJK_RE = /[\u3400-\u9fff]/;
+  function firmKey(f) {
+    return f.toUpperCase().replace(/[.,()（）"“”'’]/g, " ").replace(/\bCOMPANY\b/g, "CO").replace(/\bLIMITED\b/g, "LTD")
+      .replace(/\bCORPORATION\b/g, "CORP").replace(/\s+/g, " ").trim();
+  }
+  function buildFirms() {
+    var m = {};
+    view.forEach(function (r) {
+      if (NO_FIRM[r.src] || !r.f) return;
+      r.f.split("；").forEach(function (name) {
+        name = name.trim(); var k = firmKey(name);
+        if (!k || /^(UNKNOWN|N ?A|NONE|-)$/.test(k)) return;
+        var g = m[k] || (m[k] = { n: 0, names: {}, src: {}, last: "", zh: "", probs: {} });
+        g.n++; g.names[name] = (g.names[name] || 0) + 1; g.src[r.src] = (g.src[r.src] || 0) + 1;
+        if (r.d > g.last) g.last = r.d;
+        if (r.fz) g.zh = r.fz; else if (!g.zh && CJK_RE.test(name)) g.zh = name;
+        r.prob.forEach(function (p) { g.probs[p] = (g.probs[p] || 0) + 1; });
+      });
+    });
+    function top(o) { return Object.keys(o).sort(function (a, b) { return o[b] - o[a]; }); }
+    return Object.keys(m).map(function (k) {
+      var g = m[k]; return { name: top(g.names)[0], n: g.n, zh: g.zh, src: top(g.src), last: g.last, probs: top(g.probs).slice(0, 2) };
+    }).sort(function (a, b) { return b.n - a.n || (a.last < b.last ? 1 : -1); });
+  }
+  function renderFirms() {
+    firms = buildFirms();
+    var pages = Math.max(1, Math.ceil(firms.length / PER));
+    if (firmPage > pages) firmPage = pages;
+    $("count").textContent = "共 " + fmt(firms.length) + " 家企业，按上榜次数从多到少";
+    $("page").textContent = firmPage + " / " + pages;
+    $("prev").disabled = firmPage <= 1; $("next").disabled = firmPage >= pages;
+    var start = (firmPage - 1) * PER, slice = firms.slice(start, start + PER);
+    if (!slice.length) { $("firm-rows").innerHTML = '<tr><td colspan="7" class="empty">当前筛选条件下没有带企业名的记录。</td></tr>'; return; }
+    $("firm-rows").innerHTML = slice.map(function (g, i) {
+      var zh = g.zh && g.zh !== g.name ? esc(g.zh) : g.zh ? "（原名即中文）" : '<span class="todo">待核实</span>';
+      return "<tr>" +
+        '<td class="rank" data-k="排名">' + (start + i + 1) + "</td>" +
+        '<td class="firm" data-k="企业">' + esc(g.name) + "</td>" +
+        '<td data-k="中文名">' + zh + "</td>" +
+        '<td class="num" data-k="上榜次数">' + fmt(g.n) + "</td>" +
+        '<td data-k="通报来源"><div class="pills">' + g.src.map(function (s) { return '<span class="pill ' + s.toLowerCase() + '">' + (SRC_NAME[s] || s) + "</span>"; }).join("") + "</div></td>" +
+        '<td class="date" data-k="最近一次">' + esc(g.last) + "</td>" +
+        '<td data-k="主要问题"><div class="pills">' + g.probs.map(function (p) {
+          var c = CRIT.indexOf(p) > -1 ? " crit" : WARN.indexOf(p) > -1 ? " warn" : "";
+          return '<span class="pill prob' + c + '">' + esc(p) + "</span>"; }).join("") + "</div></td></tr>";
+    }).join("");
+  }
+  function renderList() { if (tab === "firms") renderFirms(); else renderRows(); }
+  function setTab(t) {
+    tab = t;
+    document.querySelectorAll("#tabs button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.tab === t)); });
+    $("list-box").hidden = t !== "list"; $("firm-box").hidden = t !== "firms"; $("firm-note").hidden = t !== "firms";
+    renderList();
+  }
+
   function renderRows() {
     var pages = Math.max(1, Math.ceil(view.length / PER));
     if (page > pages) page = pages;
@@ -577,13 +648,13 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 
   function setScope(s) {
     st.scope = s;
-    document.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.scope === s)); });
+    document.querySelectorAll("#scope button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.scope === s)); });
     $("f-grp").value = ""; $("f-prob").value = "";
     apply();
   }
 
   function bind() {
-    document.querySelectorAll(".seg button").forEach(function (b) { b.addEventListener("click", function () { setScope(b.dataset.scope); }); });
+    document.querySelectorAll("#scope button").forEach(function (b) { b.addEventListener("click", function () { setScope(b.dataset.scope); }); });
     $("f-period").addEventListener("change", function (e) { st.period = e.target.value; loadPeriod(); });
     $("f-src").addEventListener("change", function (e) { st.src = e.target.value; apply(); });
     $("f-grp").addEventListener("change", function () { apply(); });
@@ -614,8 +685,9 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       $("f-src").value = ""; $("f-grp").value = ""; $("f-prob").value = ""; $("f-q").value = ""; $("f-lab").checked = false;
       st.src = ""; st.q = ""; st.lab = false; apply();
     });
-    $("prev").addEventListener("click", function () { page--; renderRows(); });
-    $("next").addEventListener("click", function () { page++; renderRows(); });
+    $("prev").addEventListener("click", function () { if (tab === "firms") firmPage--; else page--; renderList(); });
+    $("next").addEventListener("click", function () { if (tab === "firms") firmPage++; else page++; renderList(); });
+    document.querySelectorAll("#tabs button").forEach(function (b) { b.addEventListener("click", function () { setTab(b.dataset.tab); }); });
   }
 
   function renderSources() {
