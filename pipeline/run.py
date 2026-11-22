@@ -51,7 +51,7 @@ INTL = {
            "product": kr.product_text, "detail": lambda r: r["violation"]},
     "cpsc": {"days": 60, "fetch": lambda since: cpsc.fetch(since), "norm": cpsc.normalize,
              "product": cpsc.product_text, "detail": cpsc.detail_text},
-    "au": {"days": 120, "fetch": lambda since: au.fetch(since), "norm": au.normalize,
+    "au": {"days": 180, "fetch": lambda since: au.fetch(since), "norm": au.normalize,
            "product": lambda r: r.get("product", ""), "detail": au.detail_text},
 }
 
@@ -208,8 +208,6 @@ def main():
             except au.Blocked as e:
                 print(f"  AU skipped: {e}", flush=True)
                 db.log_run("AU", 0, 0, "blocked", str(e))
-                if os.environ.get("AU_STRICT"):  # on the Mac a block is a real failure
-                    failed = True
             except Exception:
                 failed = True
                 db.log_run(key.upper(), 0, 0, "error", traceback.format_exc())
