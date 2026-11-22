@@ -20,6 +20,10 @@ MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "
 COLS = {"date": "date of fail", "product": "product description", "country": "o(f|) origin", "producer": "producer",
         "reason": "test applied|reason for fail", "result": "result", "criteria": "reference", "category": "food category"}
 
+class Blocked(Exception):
+    """The site did not answer this server (it drops requests from some cloud networks)."""
+
+
 S = requests.Session()
 S.headers.update(UA)
 
@@ -31,6 +35,10 @@ def _get(url):
             r.raise_for_status()
             r.encoding = "utf-8"
             return r.text
+        except (requests.ConnectionError, requests.Timeout) as e:
+            if attempt == 2:
+                raise Blocked(f"{url}: {type(e).__name__}") from e
+            time.sleep(5 * (attempt + 1))
         except requests.RequestException:
             if attempt == 2:
                 raise

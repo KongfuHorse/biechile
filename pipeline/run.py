@@ -205,6 +205,9 @@ def main():
                 # not a failure of the daily job: this server cannot reach SFA, another machine fetches it
                 print(f"  SFA skipped: {e}", flush=True)
                 db.log_run("SFA", 0, 0, "blocked", str(e))
+            except au.Blocked as e:
+                print(f"  AU skipped: {e}", flush=True)
+                db.log_run("AU", 0, 0, "blocked", str(e))
             except Exception:
                 failed = True
                 db.log_run(key.upper(), 0, 0, "error", traceback.format_exc())
