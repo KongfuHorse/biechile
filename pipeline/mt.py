@@ -66,10 +66,19 @@ def translate(kind, terms, ref_examples):
         r.raise_for_status()
         text = "".join(c.get("text", "") for c in r.json().get("content", []))
         m = re.search(r"\{.*\}", text, re.S)
-        if not m:
-            continue
-        data = json.loads(m.group(0))
-        out.update({k: v.strip() for k, v in data.items() if k in batch and isinstance(v, str) and v.strip()})
+        try:
+            data = json.loads(m.group(0)) if m else {}
+        except ValueError:
+            data = {}
+        # the model sometimes tidies spacing in the keys, so match on the key without extra spaces
+        key = lambda t: re.sub(r"\s+", " ", t).strip().rstrip(",").upper()
+        wanted = {key(t): t for t in batch}
+        got = {wanted[key(k)]: v.strip() for k, v in data.items()
+               if isinstance(k, str) and key(k) in wanted and isinstance(v, str) and v.strip()}
+        if len(got) < len(batch):
+            print(f"  translate {kind}: {len(got)}/{len(batch)} in batch {i // 40 + 1}; reply starts: {text[:200]!r}",
+                  flush=True)
+        out.update(got)
     return out
 
 
