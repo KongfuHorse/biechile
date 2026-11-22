@@ -1,0 +1,12 @@
+name: Probe SFA site (temporary)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36"
+          for u in "https://www.sfa.gov.sg/api/newsroom/search?page=1&limit=2&contentTypes=12,15,16,13,17,14" "https://www.sfa.gov.sg/rss/annual-listing-food-alerts" "https://www.sfa.gov.sg/news-publications/newsroom/recall-of-community-co-s-diced-beetroot--420g--due-to-potential-presence-of-rust-within-the-can"; do
+            curl -s -m 40 -A "$UA" -o /tmp/p.out -w "%{http_code} %{content_type} %{size_download} $u\n" "$u" || echo "fail $u"
+            head -c 300 /tmp/p.out | tr '\n' ' '; echo; echo ---
+          done
