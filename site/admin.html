@@ -219,7 +219,9 @@ const KIND_NAMES = { fda_product: "FDA 产品名", fda_industry: "FDA 行业类�
   jp_product: "日本 产品名", jp_detail: "日本 违规内容", jp_prob: "日本 问题类型",
   eu_product: "欧盟 产品名", eu_detail: "欧盟 通报标题", eu_prob: "欧盟 问题类型",
   kr_product: "韩国 产品名", kr_detail: "韩国 违规内容", kr_prob: "韩国 问题类型",
-  sg_product: "Safety Gate 产品名", sg_detail: "Safety Gate 危害和描述" };
+  sg_product: "Safety Gate 产品名", sg_detail: "Safety Gate 危害和描述",
+  cpsc_product: "美国 CPSC 产品名", cpsc_detail: "美国 CPSC 危害和销售情况", cpsc_prob: "美国 CPSC 问题类型",
+  au_product: "澳大利亚 产品名", au_detail: "澳大利亚 不合格原因", au_prob: "澳大利亚 问题类型" };
 const PAGE = 10;   // items per page in all three tabs
 function pager(el, page, total, go) {
   const pages = Math.max(1, Math.ceil(total / PAGE));

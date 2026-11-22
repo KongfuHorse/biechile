@@ -16,8 +16,11 @@ SOURCES = {
     "KR": {"name": "韩国 食品医药品安全处 进口食品不合格", "url": "https://impfood.mfds.go.kr/CFCEE01F01"},
     "SG": {"name": "欧盟 非食品危险产品预警 (Safety Gate)", "url": "https://ec.europa.eu/safety-gate-alerts/screen/webReport"},
     "SFA": {"name": "新加坡 食品局 食品召回", "url": "https://www.sfa.gov.sg/news-publications/newsroom"},
+    "CPSC": {"name": "美国 消费品安全委员会 召回 (CPSC)", "url": "https://www.cpsc.gov/Recalls"},
+    "AU": {"name": "澳大利亚 农业部 进口食品不合格报告",
+           "url": "https://www.agriculture.gov.au/biosecurity-trade/import/goods/food/inspection-testing/failing-food-reports"},
 }
-INTL = ("JP", "EU", "KR", "SG")
+INTL = ("JP", "EU", "KR", "SG", "CPSC", "AU")
 
 
 def apply_reviews(r, tt, firm_zh):
@@ -59,7 +62,7 @@ def apply_intl(r, tt):
     if (f"{k}_product", po) in tt:
         zh, st = tt[(f"{k}_product", po)]
         r["product"] = zh; machine |= st == "machine"; hit = True
-    do = r.get("subj") if r["src"] == "EU" else r.get("sgd") if r["src"] == "SG" else r.get("vio")
+    do = {"EU": r.get("subj"), "SG": r.get("sgd"), "CPSC": r.get("cpscd"), "AU": r.get("aur")}.get(r["src"], r.get("vio"))
     if do and (f"{k}_detail", do) in tt:
         zh, st = tt[(f"{k}_detail", do)]
         r["detail"] = zh; machine |= st == "machine"; hit = True
@@ -84,15 +87,16 @@ def short(r):
 
 def run(out_dir):
     cols = "id,src,pub_date,grp,ind,product,product_orig,problems,detail,legal_limit,quantity,firm,importer,lab_tested,entry_no,action,url,machine_translated"
-    cols += ",ntype,note,fei:raw->>FEINumber,ind0:raw->>IndustryCodeDescription,vio:raw->>violation,subj:raw->summary->>subject,sgdanger:raw->>danger,sgdesc:raw->>description,sgpic:raw->pictures"
+    cols += ",ntype,note,fei:raw->>FEINumber,ind0:raw->>IndustryCodeDescription,vio:raw->>violation,subj:raw->summary->>subject,sgdanger:raw->>danger,sgdesc:raw->>description,sgpic:raw->pictures,cpscd:raw->>_detail_src,cpscimg:raw->Images,aur:raw->>reason"
     rows = db.fetch_all(cols)
     tt = {(t["kind"], t["source"]): (t["zh"], t["status"])
           for t in db.fetch_table("term_translations", "kind,source,zh,status", "&order=kind,source")}
     firm_zh = {f["fei"]: f["zh_name"] for f in db.fetch_table("firm_names", "fei,zh_name", "&order=fei")}
     for r in rows:
         raw = r.get("raw") or {}  # local mode returns whole records instead of the JSON-path columns
-        for k, rk in (("sgdanger", "danger"), ("sgdesc", "description"), ("sgpic", "pictures")):
-            if r.get(k) is None and r.get("src") == "SG":
+        for src, k, rk in (("SG", "sgdanger", "danger"), ("SG", "sgdesc", "description"), ("SG", "sgpic", "pictures"),
+                           ("CPSC", "cpscd", "_detail_src"), ("CPSC", "cpscimg", "Images"), ("AU", "aur", "reason")):
+            if r.get(k) is None and r.get("src") == src:
                 r[k] = raw.get(rk)
         if r.get("src") == "SG":
             r["sgd"] = (r.get("sgdanger") or "") + (("\nDescription: " + r["sgdesc"]) if r.get("sgdesc") else "")
@@ -101,6 +105,8 @@ def run(out_dir):
     for r in rows:
         if r.get("src") == "SG":
             r["im"] = ["sg:" + str(i) for i in (r.get("sgpic") or [])][:6]
+        elif r.get("src") == "CPSC":
+            r["im"] = [x["URL"] for x in (r.get("cpscimg") or []) if (x or {}).get("URL", "").startswith("https://")][:6]
         elif r["id"] in imgs:
             r["im"] = ["img/" + x["path"] for x in imgs[r["id"]]]
             r["im_src"] = images.host(imgs[r["id"]][0]["page"])

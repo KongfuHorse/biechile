@@ -2,7 +2,7 @@
   python -m pipeline.run                     # daily update: new TW notices + FDA last 30 days, then export
   python -m pipeline.run --since 2023-01-01  # backfill from a date
   python -m pipeline.run --export-only       # only rebuild the website JSON files
-  python -m pipeline.run --skip tw us        # skip sources: tw us jp eu kr sg sfa img
+  python -m pipeline.run --skip tw us        # skip sources: tw us jp eu kr sg sfa cpsc au img
 """
 import argparse
 import os
@@ -10,7 +10,7 @@ import sys
 import traceback
 from datetime import date, timedelta
 
-from . import db, eu, export, firms, images, jp, kr, mt, normalize, sfa, sg, sources
+from . import au, cpsc, db, eu, export, firms, images, jp, kr, mt, normalize, sfa, sg, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
 
@@ -49,6 +49,10 @@ INTL = {
            "product": lambda r: eu.product_text(r) or eu.subject(r), "detail": eu.subject},
     "kr": {"days": None, "fetch": lambda since: kr.fetch(), "norm": kr.normalize,
            "product": kr.product_text, "detail": lambda r: r["violation"]},
+    "cpsc": {"days": 60, "fetch": lambda since: cpsc.fetch(since), "norm": cpsc.normalize,
+             "product": cpsc.product_text, "detail": cpsc.detail_text},
+    "au": {"days": 120, "fetch": lambda since: au.fetch(since), "norm": au.normalize,
+           "product": lambda r: r.get("product", ""), "detail": au.detail_text},
 }
 
 
@@ -152,7 +156,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", help="backfill start date YYYY-MM-DD")
     ap.add_argument("--export-only", action="store_true")
-    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa img")
+    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa cpsc au img")
     a = ap.parse_args()
     print("storage:", "Supabase" if db.using_supabase() else "local file")
     failed = False
@@ -190,7 +194,7 @@ def main():
 
         # Japan, EU, Korea
         cache = None
-        for key in ("jp", "eu", "kr", "sg", "sfa"):
+        for key in ("jp", "eu", "kr", "sg", "sfa", "cpsc", "au"):
             if key in a.skip:
                 continue
             try:

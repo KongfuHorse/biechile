@@ -118,9 +118,26 @@ PROBLEM_TYPES = {
     "手续/审批": "missing certificate, no health certificate, illegal import, documents",
     "其他": "none of the above",
 }
+NONFOOD_TYPES = {
+    "化学有害物": "lead, phthalates, cadmium, banned chemicals, toxic substances",
+    "窒息/勒颈": "choking on small parts, suffocation, strangulation, entanglement",
+    "触电": "electric shock, electrocution",
+    "火灾/烧伤": "fire, overheating, burns, scalds, battery fire",
+    "受伤": "falls, tip-over, laceration, impact, entrapment, crushing, magnet ingestion, button battery ingestion",
+    "溺水": "drowning",
+    "视力/听力损伤": "damage to eyes or hearing",
+    "环境危害": "environmental harm",
+    "微生物": "bacteria, mould",
+    "标签": "missing warnings or labels, instructions",
+    "其他": "none of the above",
+}
+NONFOOD_SRCS = ("CPSC",)
 SRC_LANG = {"JP": "Japanese (from Japan's Ministry of Health border inspection records)",
             "EU": "English or another EU language (from the EU RASFF food alert system)",
             "KR": "Korean (from Korea's Ministry of Food and Drug Safety import inspection records)",
+            "AU": "English (from Australia's imported food inspection failing food reports; the problem text names the test and the substance found)",
+            "CPSC": "English (from US Consumer Product Safety Commission recalls of consumer products; the problem text has the hazard, "
+                    "incidents and where it was sold; translate all of it, starting each part on a new line)",
             "SG": "English (from the EU Safety Gate alert system for dangerous non-food products such as toys, "
                   "electrical appliances, cosmetics and children's products; the product field has the product type "
                   "and the product name, separated by |)"}
@@ -132,7 +149,8 @@ def translate_items(src, items):
     out = {"product": {}, "detail": {}, "prob": {}}
     if not items or not available():
         return out
-    types = "\n".join(f"- {k}: {v}" for k, v in PROBLEM_TYPES.items())
+    type_dict = NONFOOD_TYPES if src in NONFOOD_SRCS else PROBLEM_TYPES
+    types = "\n".join(f"- {k}: {v}" for k, v in type_dict.items())
 
     def one(batch):
         prompt = (
@@ -186,7 +204,7 @@ def translate_items(src, items):
                 part["product"][src_item["product"]] = d["product_zh"].strip()
             if src_item.get("detail") and (d.get("detail_zh") or "").strip():
                 part["detail"][src_item["detail"]] = d["detail_zh"].strip()
-                ts = [t for t in (d.get("types") or []) if t in PROBLEM_TYPES]
+                ts = [t for t in (d.get("types") or []) if t in type_dict]
                 part["prob"][src_item["detail"]] = "|".join(dict.fromkeys(ts or ["其他"]))
         return part
 
