@@ -128,3 +128,6 @@ revoke all on function _nas_check(text, text) from public, anon, authenticated;
 grant execute on function nas_checkin(text, text, text, jsonb), nas_next_job(text, text),
   nas_finish_job(text, text, bigint, boolean, jsonb, text), nas_put_file(text, text, bigint, text, text, text),
   nas_get_code(text, text, text) to anon;
+
+-- The GitHub workflow publishes code bundles with the service key.
+grant select, insert, update, delete on nas_agents, nas_config, nas_code, nas_jobs, nas_files to service_role;
