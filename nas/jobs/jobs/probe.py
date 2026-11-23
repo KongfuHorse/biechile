@@ -153,3 +153,56 @@ def fetch(args, ctx):
         b.close()
     ctx.log.info("fetch %s -> %s, %d chars", u, res["status"], len(res["text"]))
     return res
+
+
+def capture(args, ctx):
+    """Open a page, do a few user steps, and record the data requests the page makes.
+    args: {"url": ..., "steps": [{"click": sel} | {"fill": [sel, text]} | {"press": [sel, key]} | {"wait": ms}],
+           "match": "substring a request URL must contain (optional)", "body_chars": 20000, "screenshot": true}
+    Only XHR/fetch requests are kept. Used to learn how a search page gets its results."""
+    from playwright.sync_api import sync_playwright
+    reqs = []
+    with sync_playwright() as p:
+        b = _browser(p)
+        page = b.new_context(user_agent=UA, locale="zh-CN", viewport={"width": 1280, "height": 900}).new_page()
+
+        def on_response(r):
+            q = r.request
+            if q.resource_type not in ("xhr", "fetch"):
+                return
+            if args.get("match") and args["match"] not in r.url:
+                return
+            item = {"url": r.url, "method": q.method, "status": r.status, "post": (q.post_data or "")[:5000],
+                    "req_headers": {k: v for k, v in q.headers.items() if k.lower() in ("content-type", "referer", "x-requested-with")},
+                    "type": r.headers.get("content-type", "")}
+            try:
+                item["body"] = r.text()[: int(args.get("body_chars", 20000))]
+            except Exception as e:
+                item["body_error"] = str(e)[:200]
+            reqs.append(item)
+
+        page.on("response", on_response)
+        _open(page, args["url"], int(args.get("wait_ms", 10000)))
+        done = []
+        for st in args.get("steps", []):
+            try:
+                if "click" in st:
+                    page.click(st["click"], timeout=15000)
+                elif "fill" in st:
+                    page.fill(st["fill"][0], st["fill"][1], timeout=15000)
+                elif "press" in st:
+                    page.press(st["press"][0], st["press"][1], timeout=15000)
+                elif "wait" in st:
+                    page.wait_for_timeout(int(st["wait"]))
+                done.append({"step": st, "ok": True})
+            except Exception as e:
+                done.append({"step": st, "ok": False, "error": str(e)[:300]})
+            _settle(page, 8000)
+        html, text = _read(page)
+        if args.get("screenshot", True):
+            ctx.put_file("after.jpg", "image/jpeg", page.screenshot(type="jpeg", quality=50, full_page=True))
+        res = {"final_url": page.url, "steps": done, "requests": reqs,
+               "text": re.sub(r"\s+", " ", text)[: int(args.get("text_chars", 5000))], "saved": _archive(ctx, args["url"], html)}
+        b.close()
+    ctx.log.info("capture %s: %d requests", args["url"], len(reqs))
+    return res
