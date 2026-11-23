@@ -27,6 +27,7 @@
   --sfa: #3b8a3e;
   --cpsc: #5a6b8c;
   --au: #b08a1e;
+  --cn: #9c2c5b;
   --crit: #b3261e;
   --warn: #a8640a;
   --calm: #8a949e;
@@ -38,13 +39,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-    --accent: #62b4c6; --logo: #4096ff; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --cpsc: #a9b8d6; --au: #e3c35d; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+    --accent: #62b4c6; --logo: #4096ff; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --cpsc: #a9b8d6; --au: #e3c35d; --cn: #e08ab0; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10161b; --surface: #172028; --ink: #e5eaee; --muted: #9ba7b2; --line: #2a353f;
-  --accent: #62b4c6; --logo: #4096ff; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --cpsc: #a9b8d6; --au: #e3c35d; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
+  --accent: #62b4c6; --logo: #4096ff; --us: #8fa9e0; --tw: #6cc5ac; --jp: #ee8c9d; --eu: #b3a3f0; --kr: #d9b25a; --sg: #f0a070; --sfa: #8fd18f; --cpsc: #a9b8d6; --au: #e3c35d; --cn: #e08ab0; --crit: #f08a82; --warn: #e3a64c; --calm: #7d8893; --chip: #1f2a33;
   color-scheme: dark;
 }
 
@@ -67,7 +68,7 @@ h1 .h-sub { font-family: var(--font-display); font-size: 22px; line-height: 1.4;
 .src-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--chip); color: var(--muted); border: 1px solid transparent; }
 .src-chip.on { color: var(--ink); border-color: var(--line); background: var(--surface); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--calm); }
-.dot.us { background: var(--us); } .dot.tw { background: var(--tw); } .dot.jp { background: var(--jp); } .dot.eu { background: var(--eu); } .dot.kr { background: var(--kr); } .dot.sg { background: var(--sg); } .dot.sfa { background: var(--sfa); } .dot.cpsc { background: var(--cpsc); } .dot.au { background: var(--au); }
+.dot.us { background: var(--us); } .dot.tw { background: var(--tw); } .dot.jp { background: var(--jp); } .dot.eu { background: var(--eu); } .dot.kr { background: var(--kr); } .dot.sg { background: var(--sg); } .dot.sfa { background: var(--sfa); } .dot.cpsc { background: var(--cpsc); } .dot.au { background: var(--au); } .dot.cn { background: var(--cn); }
 .src-chip .soon { font-size: 12px; }
 
 main .wrap { display: grid; gap: 20px; padding-top: 20px; padding-bottom: 40px; }
@@ -154,6 +155,7 @@ td.date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--
 .pill.sfa { color: var(--sfa); border: 1px solid var(--sfa); }
 .pill.cpsc { color: var(--cpsc); border: 1px solid var(--cpsc); }
 .pill.au { color: var(--au); border: 1px solid var(--au); }
+.pill.cn { color: var(--cn); border: 1px solid var(--cn); }
 .pill.nt.ok { background: transparent; color: var(--ok, #1d7a4c); border: 1px solid currentColor; }
 .thumbs { display: flex; gap: 3px; margin-top: 6px; flex-wrap: nowrap; align-items: center; }
 .thumbs button { padding: 0; border: 1px solid var(--line); border-radius: 4px; background: var(--card); cursor: zoom-in; line-height: 0; }
@@ -260,7 +262,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
               <select id="f-period"><option value="12m">最近 12 个月</option></select>
             </label>
             <label class="field" for="f-src">来源
-              <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option><option value="CPSC">美国 CPSC（消费品）</option><option value="AU">澳大利亚 农业部</option></select>
+              <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option><option value="CPSC">美国 CPSC（消费品）</option><option value="AU">澳大利亚 农业部</option><option value="CN">中国大陆 市场监管总局</option></select>
             </label>
             <label class="field" for="f-grp">类别
               <select id="f-grp"></select>
@@ -317,6 +319,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <li>新加坡不公布进口拒收记录，本站收录的是新加坡食品局对已上市中国食品的召回通报。食品局事后撤销的召回标为"召回已撤销"，并写明原因。</li>
         <li>美国 CPSC 是美国消费品安全委员会，本站收录制造国为中国的消费品召回（玩具、家具、电器等），附官方产品照片、制造商、销售渠道和售出数量。</li>
         <li>澳大利亚的记录来自农业部每月公布的进口食品不合格报告（取自澳大利亚政府开放数据网站 data.gov.au），都是口岸检验不合格的货物，已销毁或退回。</li>
+        <li>中国大陆的记录来自国家市场监管总局发布的食品安全监督抽检不合格通报（2019 年起），按通报附件逐批收录，含标称生产企业、被抽样单位、检验值和标准值。企业是"标称"的，即产品标签上写的企业。标称企业提出异议并经省级市场监管部门核实认可的，不列企业名，并注明核实结果。问题类型按检验项目自动归类。</li>
         <li>条数多不等于问题率高。中国的出口量很大，不合格率需要结合进口总批数来看。</li>
         <li>FDA 只公布企业英文名。中文名只在人工核实（对照工商登记信息）后显示，标"已核实"。</li>
         <li>FDA 产品名称和拒收原因由我们翻译成中文。新出现的名称先用 AI 自动翻译，标有"机翻"，人工核对后去掉标记。日本、欧盟、韩国的内容也是 AI 翻译，问题类型由 AI 归类。一切以官方原文为准。</li>
@@ -336,13 +339,13 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 (function () {
   "use strict";
   var FOOD = ["食品", "膳食补充剂", "食品接触材料"];
-  var CRIT = ["农药残留", "兽药残留", "污染物", "微生物", "化学有害物", "窒息/勒颈", "触电", "火灾/烧伤", "溺水"];
+  var CRIT = ["农药残留", "兽药残留", "污染物", "微生物", "非法添加", "化学有害物", "窒息/勒颈", "触电", "火灾/烧伤", "溺水"];
   var WARN = ["色素/添加剂", "材质/溶出", "卫生/生产", "受伤", "视力/听力损伤", "环境危害"];
   var SOON = ["泰国 FDA", "越南"];
-  var SRC = ["US", "TW", "JP", "EU", "KR", "SG", "SFA", "CPSC", "AU"];
-  var SRC_NAME = { US: "美国", TW: "台湾", JP: "日本", EU: "欧盟", KR: "韩国", SG: "欧盟·非食品", SFA: "新加坡", CPSC: "美国·消费品", AU: "澳大利亚" };
-  var SRC_FULL = { US: "美国 FDA", TW: "台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处", SG: "欧盟 Safety Gate", SFA: "新加坡 食品局", CPSC: "美国 CPSC", AU: "澳大利亚 农业部" };
-  var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文", SG: "Safety Gate 原文", SFA: "食品局原文", CPSC: "CPSC 原文", AU: "澳大利亚原表" };
+  var SRC = ["US", "TW", "JP", "EU", "KR", "SG", "SFA", "CPSC", "AU", "CN"];
+  var SRC_NAME = { US: "美国", TW: "台湾", JP: "日本", EU: "欧盟", KR: "韩国", SG: "欧盟·非食品", SFA: "新加坡", CPSC: "美国·消费品", AU: "澳大利亚", CN: "中国大陆" };
+  var SRC_FULL = { US: "美国 FDA", TW: "台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处", SG: "欧盟 Safety Gate", SFA: "新加坡 食品局", CPSC: "美国 CPSC", AU: "澳大利亚 农业部", CN: "市场监管总局" };
+  var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文", SG: "Safety Gate 原文", SFA: "食品局原文", CPSC: "CPSC 原文", AU: "澳大利亚原表", CN: "总局通报原文" };
   var SG_IMG = "https://ec.europa.eu/safety-gate-alerts/public/api/notification/";
   var PER = 30;
   var all = [], meta = null, view = [], fuzzy = false, page = 1, tab = "list", firms = [], firmPage = 1, brandPage = 1, cache = {}, range = { from: "", to: "" };

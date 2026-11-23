@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from datetime import date
 
-from . import db, firms, images, normalize
+from . import cn_site, db, firms, images, normalize
 
 SOURCES = {
     "TW": {"name": "台湾 食品药物管理署 (TFDA)", "url": "https://www.fda.gov.tw/UnsafeFood/UnsafeFood.aspx"},
@@ -19,6 +19,7 @@ SOURCES = {
     "CPSC": {"name": "美国 消费品安全委员会 召回 (CPSC)", "url": "https://www.cpsc.gov/Recalls"},
     "AU": {"name": "澳大利亚 农业部 进口食品不合格报告",
            "url": "https://www.agriculture.gov.au/biosecurity-trade/import/goods/food/inspection-testing/failing-food-reports"},
+    "CN": {"name": "中国大陆 市场监管总局 食品抽检不合格", "url": "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/spcjs/"},
 }
 INTL = ("JP", "EU", "KR", "SG", "CPSC", "AU")
 
@@ -118,6 +119,12 @@ def run(out_dir):
         elif r["id"] in imgs:
             r["im"] = ["img/" + x["path"] for x in imgs[r["id"]]]
             r["im_src"] = images.host(imgs[r["id"]][0]["page"])
+    try:
+        cn = cn_site.rows()
+    except Exception as e:  # the mainland table is optional; never block the export
+        print("cn rows skipped:", e)
+        cn = []
+    rows += cn
     n_img = images.download_approved(os.path.join(out_dir, "img")) if imgs else 0
     by_year = defaultdict(list)
     for r in rows:
@@ -134,4 +141,5 @@ def run(out_dir):
     }
     with open(os.path.join(out_dir, "data", "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=1)
+    print(f"mainland sampling rows: {len(cn)}")
     print(f"exported {len(rows)} records in {len(years)} year files, {n_img} approved images")
