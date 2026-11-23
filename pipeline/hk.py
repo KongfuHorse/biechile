@@ -19,6 +19,7 @@ BASE = "https://www.cfs.gov.hk"
 FA_YEAR = BASE + "/sc_chi/whatsnew/whatsnew_fa/whatsnew_fa_{y}.html"
 US_LIST = BASE + "/filemanager/pressrelease/sc_chi/list_UnsatisfactorySampleResult_7954_2.js"
 US_MONTH = BASE + "/sc_chi/unsat_samples/{m:02d}-{y}.html"
+VIA_DB = [0]
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36"}
 
 
@@ -27,12 +28,13 @@ def get(url):
         r = requests.get(url, headers=UA, timeout=60)
         if r.status_code == 200 and r.content:
             r.encoding = "utf-8"
-            return r.text
+            return r.text.lstrip("\ufeff")
         if r.status_code == 404:
             return ""
     except requests.RequestException:
         pass
-    return sfa._via_db(url)  # Hong Kong sometimes refuses cloud servers; go through the database
+    VIA_DB[0] += 1
+    return sfa._via_db(url).lstrip("\ufeff")  # Hong Kong sometimes refuses cloud servers; go through the database
 
 
 def _text(s):
@@ -208,6 +210,6 @@ def fetch(since_year, known=(), delay=0.5, log=print):
             pages += 1
             time.sleep(delay)
         time.sleep(delay)
-    log(f"  HK: read {pages} pages, {len(recs)} mainland records")
+    log(f"  HK: read {pages} pages ({VIA_DB[0]} through the database), {len(recs)} mainland records")
     return recs
 
