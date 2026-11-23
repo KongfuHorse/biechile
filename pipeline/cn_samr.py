@@ -116,10 +116,10 @@ def _html_text(html):
     return re.sub(r"[ \t\u3000]*\n[ \t\u3000\n]*", "\n\n", body)
 
 
-def notices():
-    """Yield (url, title, text, [(attachment name, bytes)]) for every notice page the NAS has downloaded.
-    The newest download of a page wins."""
-    jobs = db.fetch_table("nas_jobs", "id", "&kind=eq.pages&status=eq.done&order=id.desc")
+def notices(since=None):
+    """Yield (url, title, text, [(attachment name, bytes)]) for every notice page the NAS has downloaded
+    (only jobs created on or after since, if given). The newest download of a page wins."""
+    jobs = db.fetch_table("nas_jobs", "id", "&kind=eq.pages&status=eq.done&order=id.desc" + (f"&created_at=gte.{since}" if since else ""))
     done = set()
     for row in jobs:
         r = requests.get(f"{db.URL}/rest/v1/nas_jobs?select=result&id=eq.{row['id']}", headers=db._h(), timeout=120)
@@ -249,10 +249,11 @@ def our_firms():
     return [(k, fk, n) for k, fk, n in out if n and re.search(r"[一-龥]", n)]
 
 
-def main():
+def collect(since=None):
+    """Parsed rows (deduplicated) and a short report of the notices downloaded since the given date."""
     rows, n_notices, empty = [], 0, []
     n_sheet = 0
-    for url, title, text, docs in notices():
+    for url, title, text, docs in notices(since):
         n_notices += 1
         got = parse(text, url, title)
         h = header(text)
@@ -277,6 +278,11 @@ def main():
     uniq = [{k: r.get(k) for k in keys} for r in uniq]
     for r in uniq:
         r["disputed"] = bool(r["disputed"])
+    return uniq, n_notices, n_sheet, empty
+
+
+def main():
+    uniq, n_notices, n_sheet, empty = collect()
     store(uniq)
     years = {}
     for r in uniq:

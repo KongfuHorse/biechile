@@ -19,7 +19,9 @@ SOURCES = {
     "CPSC": {"name": "美国 消费品安全委员会 召回 (CPSC)", "url": "https://www.cpsc.gov/Recalls"},
     "AU": {"name": "澳大利亚 农业部 进口食品不合格报告",
            "url": "https://www.agriculture.gov.au/biosecurity-trade/import/goods/food/inspection-testing/failing-food-reports"},
-    "CN": {"name": "中国大陆 市场监管总局 食品抽检不合格", "url": "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/spcjs/"},
+    "CN": {"name": "中国大陆 市场监管总局 抽检抽查不合格", "url": "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/spcjs/"},
+    "SZ": {"name": "深圳市 市场监管局 抽检抽查不合格", "url": "https://amr.sz.gov.cn/xxgk/qt/ztlm/zdlygk/sygk/spzl_zd/"},
+    "HK": {"name": "中国香港 食物安全中心 食物警报", "url": "https://www.cfs.gov.hk/sc_chi/whatsnew/whatsnew_fa/whatsnew_fa.html"},
 }
 INTL = ("JP", "EU", "KR", "SG", "CPSC", "AU")
 

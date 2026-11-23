@@ -1,4 +1,4 @@
-"""Mainland food sampling results (cn_checks) as website rows, source "CN".
+"""Mainland sampling results (cn_checks) as website rows: source "CN" (SAMR) and "SZ" (Shenzhen).
 
 Only failed samples are shown. Problem types are set by fixed rules (no AI).
 When the labelled company's objection was upheld (the product was not theirs), the company
@@ -57,9 +57,60 @@ def _clean(s):
     return TAIL.sub("", s or "").strip() or None
 
 
+NF_RULES = [
+    ("触电", r"电气间隙|爬电距离|抗电强度|电气强度|接地|泄漏电流|防触电|触及带电|绝缘|电能量源的防护|电容器的放电|插头|插套|直接插入电网|导体的固定|输入试验|电源线"),
+    ("火灾/烧伤", r"发热|温升|热灼伤|短路|热滥用|过充|燃烧|阻燃|着火|灼热丝|耐热|耐燃|非正常工作|异常工作|过载|热塑性零部件|针焰|易燃|闪点"),
+    ("窒息/勒颈", r"小零件|绳带|绳索|功能性绳|窒息|包装袋|塑料袋"),
+    ("化学有害物", r"甲醛|邻苯|增塑剂|重金属|可迁移元素|偶氮|pH|多环芳烃|致癌|TVOC|苯|有害物质|铅|镉|汞|铬|砷|游离|挥发性有机|VOC|硫含量|有害"),
+    ("受伤", r"锐利|尖端|稳定性|强度|跌落|冲击|结构|夹|磁体|磁通|纽扣电池|制动|刹车|耐久|可触及|边缘|断裂|拉力|撕裂|爆破|压力"),
+    ("视力/听力损伤", r"声压|蓝光|激光|光生物|视|透光|折射|顶焦度"),
+    ("标签", r"标识|标签|标志|使用说明|警示|说明书|铭牌"),
+]
+NF_GROUPS = [
+    (r"玩具|积木|拼图|童车|滑板车|学生用品|文具|笔", "玩具"),
+    (r"儿童|婴|童鞋|童装|奶瓶|约束系统|安全座椅", "儿童用品"),
+    (r"移动电源|充电|电源适配器|电池|电热|电器|电饭|电压力锅|电磁灶|热水器|空调|冰箱|洗衣机|吹风|电吹|电动|吸尘|加湿|电暖|取暖|插座|开关|延长线|转换器|电线|电缆|按摩|美容仪|电熨斗|微波|烤箱|净化器|消毒柜|电视|音箱|耳机|摄像头|显示器|电脑|计算机|笔记本|平板|手机|移动用户终端|路由器|机顶盒|投影|扫描|打印|办公设备|行车记录|信息技术|音视频", "电器"),
+    (r"灯|照明|LED", "灯具灯串"),
+    (r"家具|床垫|沙发|橱柜|桌|椅", "家具"),
+    (r"服装|服饰|纺织|针织|羽绒|鞋|袜|内衣|床上用品|毛巾|口罩|护具", "服装纺织"),
+    (r"燃气|液化石油气|灶具", "燃气器具"),
+    (r"打火机|烟花|爆竹", "烟花爆竹"),
+    (r"眼镜|老视", "防护用品"),
+    (r"头盔|劳动防护|防护服|安全帽|安全带|消防", "防护用品"),
+    (r"自行车|电动车|机动车|轮胎|车用|汽车|摩托|燃油|润滑油|汽油|柴油", "机动车及配件"),
+    (r"化妆|牙刷|牙膏|洗涤|卫生用品|纸巾|湿巾|卫生巾|尿", "化妆品"),
+    (r"餐具|厨具|锅|保温杯|食品接触|厨房", "厨房用品"),
+    (r"首饰|珠宝|黄金", "首饰配饰"),
+    (r"涂料|胶粘剂|地板|瓷砖|陶瓷|防水|门|窗|卫浴|水嘴|管材|管件|水泥|钢筋|玻璃|人造板|壁纸|建筑|装修|电工套管", "建材装修"),
+    (r"工具|机床|电动工具|砂轮|焊机|压缩机|泵|阀门|紧固件|钢丝绳|机械", "机械工具"),
+    (r"化肥|农药|农膜|农资|种子|饲料|农业", "农资"),
+]
+
+
+def nf_types(text):
+    out = [name for name, rx in NF_RULES if re.search(rx, text or "")]
+    return out[:3] or ["其他"]
+
+
+def nf_group(cat, product):
+    t = f"{cat or ''} {product or ''}"
+    for rx, g in NF_GROUPS:
+        if re.search(rx, t):
+            return g
+    return "其他非食品"
+
+
+PROG = {  # source, kind of notice, action
+    "samr_food": ("CN", "监督抽检不合格"),
+    "samr_quality": ("CN", "国家监督抽查不合格"),
+    "sz_food": ("SZ", "深圳市监督抽检不合格"),
+    "sz_quality": ("SZ", "深圳市监督抽查不合格"),
+}
+
+
 def rows():
     cols = ("id,notice_url,notice_date,item_no,maker,maker_role,product,problem,test_value,standard_value,"
-            "seller,platform,origin,spec,brand,prod_date,category,sample_no,disputed,dispute_note,raw,source")
+            "seller,platform,origin,spec,brand,prod_date,category,sample_no,disputed,dispute_note,raw,source,program,lab,maker_addr")
     out = []
     for c in db.fetch_table("cn_checks", cols, "&passed=is.false&order=id"):
         note = _clean(c.get("dispute_note"))
@@ -93,13 +144,24 @@ def rows():
             bits.append(note)
             nt = "有异议，未获认可" if NOT_UPHELD.search(note) else "有异议"
             bits[-1] = "异议情况：" + bits[-1]
-        key = c.get("sample_no") or f"{c['notice_url']}#{c['item_no']}"
+        prog = c.get("program") or "samr_food"
+        src, act = PROG.get(prog, ("CN", "监督抽检不合格"))
+        food = prog.endswith("food")
+        if not food:
+            if c.get("maker_addr") and len(c["maker_addr"]) <= 12:
+                bits.append("标称生产单位所在地：" + c["maker_addr"])
+            if c.get("lab"):
+                bits.append("承检机构：" + c["lab"])
+            if c.get("dispute_note") and not disputed:
+                bits.append("备注：" + c["dispute_note"])
+        key = c.get("sample_no") if food and c.get("sample_no") else f"{c['notice_url']}#{c['item_no']}"
         out.append({
-            "id": "CN-" + hashlib.sha1(key.encode()).hexdigest()[:14],
-            "src": "CN", "pub_date": c["notice_date"], "grp": "食品", "ind": c.get("category") or "",
-            "product": c.get("product") or "", "product_orig": "", "problems": problem_types(prob, c.get("standard_value")),
+            "id": src + "-" + hashlib.sha1(key.encode()).hexdigest()[:14],
+            "src": src, "pub_date": c["notice_date"], "grp": "食品" if food else nf_group(c.get("category"), c.get("product")),
+            "ind": c.get("category") or "", "product": c.get("product") or "", "product_orig": "",
+            "problems": problem_types(prob, c.get("standard_value")) if food else nf_types(prob),
             "detail": x, "legal_limit": c.get("standard_value") or "", "quantity": "", "firm": maker,
-            "importer": "", "lab_tested": True, "entry_no": "", "action": "监督抽检不合格", "url": c["notice_url"],
+            "importer": "", "lab_tested": True, "entry_no": "", "action": act, "url": c["notice_url"],
             "machine_translated": False, "ntype": nt, "note": "；".join(bits)[:800],
         })
     return out

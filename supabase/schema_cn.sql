@@ -37,3 +37,8 @@ alter table cn_checks
   add column if not exists sample_no text,
   add column if not exists attachment text;
 create index if not exists cn_checks_sample_idx on cn_checks (sample_no);
+
+-- Which programme a row comes from: samr_food (SAMR food sampling), samr_quality (SAMR national
+-- product quality spot checks), sz_food / sz_quality (Shenzhen market regulator).
+alter table cn_checks add column if not exists program text not null default 'samr_food';
+create index if not exists cn_checks_program_idx on cn_checks (program);

@@ -10,7 +10,7 @@ import sys
 import traceback
 from datetime import date, timedelta
 
-from . import au, cpsc, db, eu, export, firms, images, jp, kr, mt, normalize, sfa, sg, sources
+from . import au, cn_daily, cpsc, db, eu, export, firms, hk, images, jp, kr, mt, normalize, sfa, sg, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
 
@@ -156,7 +156,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", help="backfill start date YYYY-MM-DD")
     ap.add_argument("--export-only", action="store_true")
-    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa cpsc au img firms")
+    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa cpsc au hk cn img firms")
     a = ap.parse_args()
     print("storage:", "Supabase" if db.using_supabase() else "local file")
     failed = False
@@ -216,6 +216,25 @@ def main():
             except Exception:
                 failed = True
                 db.log_run(key.upper(), 0, 0, "error", traceback.format_exc())
+
+        # Hong Kong CFS food alerts and unsatisfactory samples (mainland-origin products only)
+        if "hk" not in a.skip:
+            try:
+                year = int(a.since[:4]) if a.since else (date.today() - timedelta(days=40)).year
+                recs = hk.fetch(year, known=db.ids("HK"))
+                n = db.upsert(recs) if recs else 0
+                db.log_run("HK", len(recs), n, "ok", f"since_year={year} via_db={hk.VIA_DB[0]}")
+            except Exception:
+                failed = True
+                db.log_run("HK", 0, 0, "error", traceback.format_exc())
+
+        # mainland notices downloaded by the NAS in China (SAMR, Shenzhen)
+        if "cn" not in a.skip:
+            try:
+                n, asked = cn_daily.run()
+                db.log_run("CN", n, n, "ok", f"new notices asked from the NAS: {asked}")
+            except Exception:
+                db.log_run("CN", 0, 0, "error", traceback.format_exc())  # the NAS being away must not fail the run
 
         # product photos for EU RASFF records (admin approves them before they show)
         if "img" not in a.skip:
