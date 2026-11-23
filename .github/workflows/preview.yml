@@ -1,0 +1,25 @@
+name: Preview new sources (dry run)
+
+# Runs only on preview/* branches. Fetches and parses new sources, writes nothing to the
+# database, and uploads the parsed rows as an artifact for review.
+on:
+  push:
+    branches: ["preview/**"]
+
+jobs:
+  dry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests openpyxl xlrd
+      - run: python -m pipeline.preview_sources out
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview
+          path: out/
