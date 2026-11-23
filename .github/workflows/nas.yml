@@ -46,12 +46,20 @@ jobs:
     needs: changes
     if: needs.changes.outputs.image == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
           context: nas/image
@@ -60,6 +68,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/biechile-nas:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/biechile-nas:${{ github.sha }}
+            ghcr.io/kongfuhorse/biechile-nas:latest
 
   code:
     needs: changes

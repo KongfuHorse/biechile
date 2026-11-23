@@ -1,6 +1,7 @@
 # biechile NAS agent: Python + headless Chromium + Chinese fonts.
 # Built by GitHub Actions (.github/workflows/nas.yml) and pushed to Docker Hub.
 FROM python:3.12-slim-bookworm
+LABEL org.opencontainers.image.source=https://github.com/KongfuHorse/biechile
 
 ENV PYTHONUNBUFFERED=1 \
     TZ=Asia/Shanghai \
