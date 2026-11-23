@@ -1,0 +1,77 @@
+name: NAS agent
+
+# nas/image/** changed -> build the Docker image and push it to Docker Hub.
+# nas/jobs/**  changed -> publish the jobs code bundle to Supabase; the NAS picks it up within a minute.
+on:
+  push:
+    branches: [main]
+    paths: ["nas/image/**", "nas/jobs/**", "nas/publish_code.py", ".github/workflows/nas.yml"]
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Build and push the Docker image"
+        type: boolean
+        default: false
+      code:
+        description: "Publish the jobs code bundle"
+        type: boolean
+        default: true
+
+concurrency:
+  group: nas
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.f.outputs.image }}
+      code: ${{ steps.f.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: f
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "image=${{ inputs.image }}" >> $GITHUB_OUTPUT
+            echo "code=${{ inputs.code }}" >> $GITHUB_OUTPUT
+          else
+            d=$(git diff --name-only HEAD~1 HEAD)
+            echo "$d" | grep -q '^nas/image/' && echo "image=true" >> $GITHUB_OUTPUT || echo "image=false" >> $GITHUB_OUTPUT
+            echo "$d" | grep -qE '^nas/(jobs/|publish_code.py)' && echo "code=true" >> $GITHUB_OUTPUT || echo "code=false" >> $GITHUB_OUTPUT
+          fi
+
+  image:
+    needs: changes
+    if: needs.changes.outputs.image == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: nas/image
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/biechile-nas:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/biechile-nas:${{ github.sha }}
+
+  code:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python nas/publish_code.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
