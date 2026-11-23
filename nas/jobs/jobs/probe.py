@@ -65,13 +65,36 @@ def _browser(p):
     return p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
 
 
-def _open(page, url, wait_ms):
-    resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
+def _settle(page, wait_ms):
     try:
         page.wait_for_load_state("networkidle", timeout=wait_ms)
     except Exception:
         pass
+
+
+def _open(page, url, wait_ms):
+    """Open a page the way a normal browser does. Some sites first serve a small script page
+    that sets a cookie and then reloads itself; wait until that reload has finished."""
+    resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
+    _settle(page, wait_ms)
+    page.wait_for_timeout(2000)
+    _settle(page, wait_ms)
     return resp
+
+
+def _read(page):
+    """Return (html, text); retry while the page is still navigating."""
+    last = None
+    for _ in range(5):
+        try:
+            page.wait_for_load_state("load", timeout=15000)
+            html = page.content()
+            text = page.inner_text("body") if page.query_selector("body") else ""
+            return html, text
+        except Exception as e:
+            last = e
+            page.wait_for_timeout(3000)
+    raise last
 
 
 def probe(args, ctx):
@@ -89,8 +112,7 @@ def probe(args, ctx):
             item = {"url": u}
             try:
                 resp = _open(page, u, int(args.get("wait_ms", 10000)))
-                html = page.content()
-                text = page.inner_text("body") if page.query_selector("body") else ""
+                html, text = _read(page)
                 item.update({"status": resp.status if resp else None, "final_url": page.url,
                              "title": page.title()[:200], "text_chars": len(text), "html_bytes": len(html),
                              "flags": _flags(html + text), "text_head": re.sub(r"\s+", " ", text)[:300],
@@ -118,8 +140,7 @@ def fetch(args, ctx):
         b = _browser(p)
         page = b.new_context(user_agent=UA, locale="zh-CN", viewport={"width": 1280, "height": 900}).new_page()
         resp = _open(page, u, int(args.get("wait_ms", 10000)))
-        html = page.content()
-        text = page.inner_text("body") if page.query_selector("body") else ""
+        html, text = _read(page)
         n = int(args.get("max_chars", 200000))
         res = {"url": u, "status": resp.status if resp else None, "final_url": page.url, "title": page.title(),
                "flags": _flags(html + text), "text": text[:n], "saved": _archive(ctx, u, html)}
