@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from datetime import date
 
-from . import db, images, normalize
+from . import db, firms, images, normalize
 
 SOURCES = {
     "TW": {"name": "台湾 食品药物管理署 (TFDA)", "url": "https://www.fda.gov.tw/UnsafeFood/UnsafeFood.aspx"},
@@ -92,6 +92,7 @@ def run(out_dir):
     tt = {(t["kind"], t["source"]): (t["zh"], t["status"])
           for t in db.fetch_table("term_translations", "kind,source,zh,status", "&order=kind,source")}
     firm_zh = {f["fei"]: f["zh_name"] for f in db.fetch_table("firm_names", "fei,zh_name", "&order=fei")}
+    firm_zh2 = {f["firm_key"]: f["zh_name"] for f in db.fetch_table("firm_zh", "firm_key,zh_name", "&order=firm_key")}
     for r in rows:
         raw = r.get("raw") or {}  # local mode returns whole records instead of the JSON-path columns
         for src, k, rk in (("SG", "sgdanger", "danger"), ("SG", "sgdesc", "description"), ("SG", "sgpic", "pictures"),
@@ -102,6 +103,13 @@ def run(out_dir):
             r["sgd"] = (r.get("sgdanger") or "") + (("\nDescription: " + r["sgdesc"]) if r.get("sgdesc") else "")
     imgs = images.approved()
     rows = [apply_reviews(r, tt, firm_zh) for r in rows]
+    # verified Chinese names by merged English name, for every source
+    for r in rows:
+        if r.get("firm") and r.get("src") not in ("EU", "SG", "SFA"):
+            zh = [firm_zh2.get(firms.firm_key(x)) for x in r["firm"].split("；")]
+            zh = "；".join(dict.fromkeys(z for z in zh if z))
+            if zh:
+                r["firm_zh"] = zh
     for r in rows:
         if r.get("src") == "SG":
             r["im"] = ["sg:" + str(i) for i in (r.get("sgpic") or [])][:6]

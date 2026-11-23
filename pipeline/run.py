@@ -156,7 +156,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", help="backfill start date YYYY-MM-DD")
     ap.add_argument("--export-only", action="store_true")
-    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa cpsc au img")
+    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa cpsc au img firms")
     a = ap.parse_args()
     print("storage:", "Supabase" if db.using_supabase() else "local file")
     failed = False
@@ -225,10 +225,11 @@ def main():
             except Exception:
                 db.log_run("IMG", 0, 0, "error", traceback.format_exc())
 
-        # AI candidate Chinese names for top firms (admin page only); a failure here does not fail the run
-        if "us" not in a.skip:
+        # AI Chinese names for the most-notified firms of all sources (admin page only);
+        # a failure here does not fail the run
+        if "firms" not in a.skip:
             try:
-                n = firms.generate_candidates()
+                n = firms.generate_candidates2(int(os.environ.get("FIRM_AI_LIMIT") or 60))
                 if n:
                     db.log_run("firms", n, n, "ok", "AI candidate names for admin review")
             except Exception:

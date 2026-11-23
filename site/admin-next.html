@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>（新版预览）biechile 后台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f4f6f7; --card:#fff; --text:#17212b; --muted:#5b6672; --line:#dce1e6; --accent:#0f5c6e; --accent-soft:#e3eff2;
+          --good:#1d7a4c; --bad:#b3261e; --warn:#fff6dc; --input:#fff; --btn:#0f5c6e; color-scheme:light; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#10161b; --card:#172028; --text:#e5eaee; --muted:#9ba7b2; --line:#2a353f; --accent:#62b4c6; --accent-soft:#1d3138;
+            --good:#5fd38a; --bad:#f08a82; --warn:#3a3320; --input:#121a20; --btn:#1f7a8f; color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.55 "Noto Sans SC", "PingFang SC", "Microsoft YaHei", Arial, sans-serif; }
+  .hidden { display:none !important; }
+  .logo { font-size:24px; letter-spacing:-.02em; line-height:1; white-space:nowrap; font-weight:700; }
+  .logo b { color:var(--accent); }
+  .logo small { font-size:14px; font-weight:500; color:var(--muted); margin-left:8px; }
+  .wrap { max-width:1180px; margin:0 auto; padding:20px 16px 60px; }
+  h1 { font-size:22px; margin:0; }
+  h2 { font-size:16px; margin:0 0 6px; }
+  .muted { color:var(--muted); }
+  .small { font-size:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; }
+  button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text); padding:6px 12px; }
+  button:hover { border-color:var(--muted); }
+  button.primary { background:var(--btn); border-color:var(--btn); color:#fff; font-weight:500; }
+  button.danger { color:var(--bad); }
+  button:disabled { opacity:.5; cursor:default; }
+  input, select, textarea { font:inherit; color:var(--text); background:var(--input); border:1px solid var(--line); border-radius:8px; padding:6px 8px; min-width:0; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline:2px solid var(--accent); outline-offset:-1px; }
+  label { display:block; }
+  a { color:var(--accent); }
+
+  /* 登录 */
+  #login { max-width:340px; margin:12vh auto 0; }
+  #login input { width:100%; margin:4px 0 12px; padding:8px 10px; }
+  #login button { width:100%; padding:9px; }
+  .error { color:var(--bad); min-height:20px; margin-top:8px; }
+
+  /* 顶部 */
+  header { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  header .right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .tabs button { border-radius:999px; padding:7px 14px; font-weight:500; }
+  .tabs button.on { background:var(--btn); color:#fff; border-color:var(--btn); }
+  .help { background:var(--accent-soft); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
+  .help ul { margin:4px 0 0; padding-left:20px; }
+  .bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+
+  /* 表格 */
+  .table-wrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; min-width:860px; }
+  th { text-align:left; font-weight:500; font-size:12px; color:var(--muted); padding:6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  td { padding:7px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  td.num { font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .tag { display:inline-block; font-size:12px; padding:0 7px; border-radius:4px; white-space:nowrap; }
+  .tag.ok { color:var(--good); border:1px solid var(--good); }
+  .tag.none { color:var(--muted); border:1px dashed var(--line); }
+  .tag.mt { color:var(--muted); border:1px dashed var(--muted); }
+  .links a { margin-right:8px; white-space:nowrap; font-size:12px; }
+
+  /* 编辑区 */
+  tr.editor td { background:var(--accent-soft); }
+  .form-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 12px; }
+  .form-grid label { font-size:12px; color:var(--muted); }
+  .form-grid input, .form-grid textarea { width:100%; margin-top:2px; }
+  .form-grid .wide { grid-column:1 / -1; }
+  .cands { margin:10px 0; padding:8px 10px; border:1px dashed var(--muted); border-radius:8px; background:var(--card); }
+  .cands b { font-weight:500; }
+  .cands .warn { color:var(--bad); font-size:12px; }
+  .actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+
+  .pager { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; font-size:13px; }
+  .pager input { width:64px; text-align:center; }
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--text); color:var(--bg); padding:8px 16px; border-radius:8px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  #toast.show { opacity:1; }
+  #toast.err { background:var(--bad); color:#fff; }
+  @media (max-width:640px) { .form-grid { grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion: reduce) { #toast { transition:none; } }
+</style>
+</head>
+<body>
+
+<!-- 登录 -->
+<div id="login" class="card">
+  <h1 class="logo" style="margin-bottom:10px">bie<b>chile</b><small>后台</small></h1>
+  <div class="muted small" style="margin-bottom:16px">请登录</div>
+  <form id="loginForm">
+    <label for="username">账号<input id="username" autocomplete="username" required></label>
+    <label for="password">密码<input id="password" type="password" autocomplete="current-password" required></label>
+    <button class="primary" type="submit" id="loginBtn">登录</button>
+    <div class="error" id="loginError"></div>
+  </form>
+</div>
+
+<!-- 后台 -->
+<div id="app" class="wrap hidden">
+  <header>
+    <h1 class="logo">bie<b>chile</b><small>后台</small></h1>
+    <div class="right">
+      <a href="./" target="_blank" rel="noopener">打开网站</a>
+      <button type="button" id="pwToggle">修改密码</button>
+      <button type="button" id="logoutBtn">退出</button>
+    </div>
+  </header>
+
+  <div id="pwBox" class="card hidden">
+    <h2>修改密码</h2>
+    <form id="pwForm" class="bar">
+      <input id="oldPw" type="password" placeholder="原密码" autocomplete="current-password" aria-label="原密码">
+      <input id="newPw" type="password" placeholder="新密码（至少 8 位）" autocomplete="new-password" aria-label="新密码">
+      <button class="primary" type="submit">保存新密码</button>
+    </form>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="on" data-tab="firms" role="tab" aria-selected="true">企业中文名</button>
+    <button type="button" data-tab="terms" role="tab" aria-selected="false">翻译核对</button>
+    <button type="button" data-tab="images" role="tab" aria-selected="false">产品图片</button>
+  </div>
+
+  <!-- 企业中文名 -->
+  <section id="tab-firms" class="card">
+    <div class="help">
+      各国通报大多只给企业英文名。这里只填<b>人工核实过</b>的中文全称，网站上会显示为"中文名（已核实）"，用中文名或英文名都能搜到这家企业在所有来源里的记录。
+      <ul>
+        <li>企业按英文名归并（不分大小写、标点，CO./COMPANY 这类写法算同一家），和网站"企业上榜次数"一致。</li>
+        <li>"AI 认识"：AI 表示它知道这家真实企业的中文名，可以点"采用"填进表单，但仍要你查证后再保存。"AI 推测"：按拼音和地名猜的，只能当检索关键词。</li>
+        <li>保存时至少要填统一社会信用代码或来源链接，方便以后查证。</li>
+        <li>保存后，网站会在下一次每日更新（每天早上 6:23，纽约时间）后显示。</li>
+      </ul>
+    </div>
+    <div class="bar">
+      <input id="firmSearch" type="search" placeholder="搜索英文名或已核实的中文名" aria-label="搜索企业" style="flex:1; min-width:220px">
+      <label class="small" for="firmStatus">显示
+        <select id="firmStatus">
+          <option value="todo">未核实</option>
+          <option value="known">AI 认识的（未核实）</option>
+          <option value="ai">有 AI 结果的（未核实）</option>
+          <option value="done">已核实</option>
+          <option value="all">全部</option>
+        </select>
+      </label>
+      <span class="muted small" id="firmCount"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>企业（原文）</th><th>上榜</th><th>最近一次</th><th>中文名</th><th>查证</th><th></th></tr></thead>
+        <tbody id="firmRows"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="firmPager"></div>
+  </section>
+
+  <!-- 翻译核对 -->
+  <section id="tab-terms" class="card hidden">
+    <div class="help">
+      对照表里没有的新名称，以及日本、欧盟、韩国的内容，会先由 AI（Claude Haiku）自动翻译，网站上标"机翻"。在这里改好译文，点"确认"后，标记会在下一次每日更新后去掉。"全部确认"会把所有待核对的译文按现有内容一次确认（不只是当前页）。"问题类型"一行填中文类型名，多个用竖线 | 隔开，例如：农药残留|污染物。
+    </div>
+    <div class="bar">
+      <label class="small" for="termStatus">显示
+        <select id="termStatus">
+          <option value="machine">待核对</option>
+          <option value="verified">已核对</option>
+          <option value="all">全部</option>
+        </select>
+      </label>
+      <span class="muted small" id="termCount"></span>
+      <button type="button" class="primary" id="termAll">全部确认</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>类型</th><th>原文</th><th>中文译文</th><th>状态</th><th></th></tr></thead>
+        <tbody id="termRows"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="termPager"></div>
+  </section>
+
+  <!-- 产品图片 -->
+  <section id="tab-images" class="card hidden">
+    <div class="help">
+      欧盟 RASFF 通报里附了各国官方或零售商的警示页面，新加坡食品局的召回通报也有产品照片。每日任务会打开这些页面收集图片，AI 先判断哪张是产品照片（绿框）。
+      <ul>
+        <li>点图片可以切换"通过 / 不通过"，再点"保存本条"。只有"通过"的图片会显示在网站上，下一次每日更新后生效。</li>
+        <li>"采用 AI 推荐"会把本条中 AI 认为是产品照片的图设为通过，其余设为不通过。</li>
+        <li>判断不了时点"打开警示页"对照原文。</li>
+        <li>"全部按 AI 推荐处理"会处理所有待审核的图片：AI 认为是产品照片的设为通过，其余设为不通过。AI 没判断的图片保持待审核。已经审核过的图片不受影响。</li>
+      </ul>
+    </div>
+    <div class="bar">
+      <label class="small" for="imgStatus">显示
+        <select id="imgStatus">
+          <option value="candidate">待审核</option>
+          <option value="approved">已通过</option>
+          <option value="rejected">未通过</option>
+          <option value="all">全部</option>
+        </select>
+      </label>
+      <span class="muted small" id="imgCount"></span>
+      <button type="button" class="primary" id="imgAllAi">全部按 AI 推荐处理</button>
+    </div>
+    <div id="imgList"></div>
+    <div class="pager" id="imgPager"></div>
+  </section>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const SUPABASE_URL = "https://arfagbvdcooyudfyyupb.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ywWVJ6FUYDdqrBSviP09hw_EBjMm7A4";   // 公开 key；所有读写都要先登录
+const KIND_NAMES = { fda_product: "FDA 产品名", fda_industry: "FDA 行业类别", fda_code: "FDA 拒收原因",
+  jp_product: "日本 产品名", jp_detail: "日本 违规内容", jp_prob: "日本 问题类型",
+  eu_product: "欧盟 产品名", eu_detail: "欧盟 通报标题", eu_prob: "欧盟 问题类型",
+  kr_product: "韩国 产品名", kr_detail: "韩国 违规内容", kr_prob: "韩国 问题类型",
+  sg_product: "Safety Gate 产品名", sg_detail: "Safety Gate 危害和描述",
+  cpsc_product: "美国 CPSC 产品名", cpsc_detail: "美国 CPSC 危害和销售情况", cpsc_prob: "美国 CPSC 问题类型",
+  au_product: "澳大利亚 产品名", au_detail: "澳大利亚 不合格原因", au_prob: "澳大利亚 问题类型" };
+const PAGE = 10;   // items per page in all three tabs
+function pager(el, page, total, go) {
+  const pages = Math.max(1, Math.ceil(total / PAGE));
+  if (total <= PAGE) { $(el).innerHTML = ""; return; }
+  $(el).innerHTML = `<button type="button" data-p="${page - 1}" ${page <= 1 ? "disabled" : ""}>上一页</button>
+    <span>第 <input type="number" min="1" max="${pages}" value="${page}" aria-label="页码"> / ${pages} 页（共 ${total} 条）</span>
+    <button type="button" data-p="${page + 1}" ${page >= pages ? "disabled" : ""}>下一页</button>`;
+  $(el).onclick = e => { const b = e.target.closest("button[data-p]"); if (b) go(Math.min(pages, Math.max(1, +b.dataset.p))); };
+  $(el).querySelector("input").onchange = e => go(Math.min(pages, Math.max(1, Math.round(+e.target.value) || 1)));
+}
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+let token = null, firms = [], terms = [], termTotal = 0, firmPage = 1, termPage = 1, editing = null;
+
+function store(k, v) { try { v === undefined ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} }
+function load(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+let toastTimer;
+function toast(msg, isErr) {
+  const t = $("toast"); t.textContent = msg; t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "", isErr ? 4000 : 2000);
+}
+
+async function rpc(fn, args) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(args || {}),
+  });
+  const text = await r.text();
+  if (!r.ok) {
+    let msg = text;
+    try { msg = JSON.parse(text).message || text; } catch (e) {}
+    if (/登录已过期/.test(msg)) showLogin("登录已过期，请重新登录");
+    throw new Error(msg);
+  }
+  return text ? JSON.parse(text) : null;
+}
+
+// ---------- 登录 ----------
+function showLogin(msg) {
+  token = null; store("adminToken");
+  $("app").classList.add("hidden"); $("login").classList.remove("hidden");
+  $("loginError").textContent = msg || "";
+}
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("loginBtn").disabled = true; $("loginError").textContent = "";
+  try {
+    token = await rpc("admin_login", { p_username: $("username").value.trim(), p_password: $("password").value });
+    store("adminToken", token); $("password").value = "";
+    await enterApp();
+  } catch (err) { $("loginError").textContent = err.message; }
+  $("loginBtn").disabled = false;
+});
+$("logoutBtn").addEventListener("click", async () => {
+  try { await rpc("admin_logout", { p_token: token }); } catch (e) {}
+  showLogin();
+});
+async function enterApp() {
+  await Promise.all([loadFirms(), loadTerms()]);
+  $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+}
+
+// ---------- 修改密码 ----------
+$("pwToggle").addEventListener("click", () => $("pwBox").classList.toggle("hidden"));
+$("pwForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  try {
+    await rpc("admin_change_password", { p_token: token, p_old: $("oldPw").value, p_new: $("newPw").value });
+    $("oldPw").value = ""; $("newPw").value = ""; $("pwBox").classList.add("hidden");
+    toast("密码已修改");
+  } catch (err) { toast(err.message, true); }
+});
+
+// ---------- 标签页 ----------
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tabs button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-selected", x === b); });
+  $("tab-firms").classList.toggle("hidden", b.dataset.tab !== "firms");
+  $("tab-terms").classList.toggle("hidden", b.dataset.tab !== "terms");
+  $("tab-images").classList.toggle("hidden", b.dataset.tab !== "images");
+  if (b.dataset.tab === "images" && !imgLoaded) loadImages().catch(err => toast(err.message, true));
+}));
+
+// ---------- 企业中文名（按归并后的英文名，覆盖所有来源） ----------
+const SRC_NAME = { US: "美国 FDA", TW: "台湾", JP: "日本", KR: "韩国", AU: "澳大利亚", CPSC: "美国 CPSC" };
+let firmTotal = 0, firmTimer = null;
+async function loadFirms() {
+  const res = await rpc("admin_firms2", { p_token: token, p_status: $("firmStatus").value, p_q: $("firmSearch").value.trim(),
+                                          p_offset: (firmPage - 1) * PAGE, p_limit: PAGE });
+  firms = res.items || []; firmTotal = res.total || 0;
+  if (!firms.length && firmPage > 1) { firmPage = Math.max(1, Math.ceil(firmTotal / PAGE)); return loadFirms(); }
+  renderFirms();
+}
+function searchLinks(f) {
+  const g = encodeURIComponent(`"${f.firm_en}" ${f.city || ""} China`);
+  return `<span class="links">` + (f.profile_url ? `<a href="${esc(f.profile_url)}" target="_blank" rel="noopener">FDA 档案</a>` : "") +
+    `<a href="https://www.google.com/search?q=${g}" target="_blank" rel="noopener">Google</a>` +
+    `<a href="https://www.gsxt.gov.cn/" target="_blank" rel="noopener">信用公示系统</a></span>`;
+}
+function candLinks(name) {
+  const k = encodeURIComponent(name);
+  return `<span class="links"><a href="https://www.qcc.com/web/search?key=${k}" target="_blank" rel="noopener">企查查</a>` +
+    `<a href="https://www.tianyancha.com/search?key=${k}" target="_blank" rel="noopener">天眼查</a>` +
+    `<a href="https://aiqicha.baidu.com/s?q=${k}" target="_blank" rel="noopener">爱企查</a></span>`;
+}
+function aiSummary(f) {
+  const c = Array.isArray(f.candidates) ? f.candidates : [];
+  const known = c.filter(x => x.basis === "known");
+  if (known.length) return `<div class="small"><span class="tag ok">AI 认识</span> ${esc(known[0].name)}</div>`;
+  if (c.length) return `<div class="small muted">AI 推测 ${c.length} 个</div>`;
+  return "";
+}
+function renderFirms() {
+  $("firmCount").textContent = `符合条件 ${firmTotal} 家`;
+  pager("firmPager", firmPage, firmTotal, p => { firmPage = p; editing = null; loadFirms().catch(err => toast(err.message, true)); });
+  $("firmRows").innerHTML = firms.map((f, i) => {
+    const rank = (firmPage - 1) * PAGE + i + 1;
+    const zh = f.zh_name
+      ? `<span class="tag ok">已核实</span> ${esc(f.zh_name)}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
+      : `<span class="tag none">未核实</span>${aiSummary(f)}`;
+    const srcs = (f.sources || []).map(s => SRC_NAME[s] || s).join("、");
+    let row = `<tr data-key="${esc(f.firm_key)}">
+      <td class="num">${rank}</td>
+      <td><b>${esc(f.firm_en)}</b><div class="small muted">${esc(srcs)}${f.city ? " · " + esc(f.city) : ""}${f.fei ? " · FEI " + esc(f.fei) : ""}</div></td>
+      <td class="num">${f.n} 次</td>
+      <td class="num">${esc(f.last_date)}<div class="small muted">${esc(f.last_product || "")}</div></td>
+      <td>${zh}</td>
+      <td>${searchLinks(f)}</td>
+      <td><button type="button" data-edit="${esc(f.firm_key)}">${f.zh_name ? "修改" : "核实"}</button></td>
+    </tr>`;
+    if (editing === f.firm_key) row += editorRow(f);
+    return row;
+  }).join("") || `<tr><td colspan="7" class="muted">没有符合条件的企业。</td></tr>`;
+}
+function editorRow(f) {
+  const c = Array.isArray(f.candidates) ? f.candidates : [];
+  const cands = c.length
+    ? `<div class="cands">` +
+      c.map(x => `<div style="margin:3px 0">${x.basis === "known" ? '<span class="tag ok">AI 认识</span>' : '<span class="tag none">AI 推测</span>'}
+        <b>${esc(x.name)}</b> <span class="small muted">${esc(x.reason || "")}</span> ${candLinks(x.name)}
+        ${x.basis === "known" ? `<button type="button" class="small" data-use="${esc(x.name)}">采用</button>` : ""}</div>`).join("") +
+      `<div class="warn" style="margin-top:4px">AI 的结果都要查证：在企查查、天眼查或信用公示系统里核对地址和经营范围，再填信用代码或来源链接。</div></div>`
+    : `<div class="cands small muted">还没有 AI 结果（每日任务会按上榜次数从多到少逐步生成）。</div>`;
+  const id = s => `ed-${s}`;
+  return `<tr class="editor"><td></td><td colspan="6">
+    ${cands}
+    <form class="form-grid" data-save="${esc(f.firm_key)}">
+      <label for="${id("zh")}">中文全称（核实过的）<input id="${id("zh")}" name="zh" value="${esc(f.zh_name || "")}" required></label>
+      <label for="${id("code")}">统一社会信用代码<input id="${id("code")}" name="code" value="${esc(f.credit_code || "")}" maxlength="18"></label>
+      <label class="wide" for="${id("url")}">来源链接<input id="${id("url")}" name="url" type="url" value="${esc(f.source_url || "")}" placeholder="https://..."></label>
+      <label class="wide" for="${id("note")}">备注（怎么核实的）<textarea id="${id("note")}" name="note" rows="2">${esc(f.note || "")}</textarea></label>
+      <div class="actions wide">
+        <button type="submit" class="primary">保存为已核实</button>
+        <button type="button" data-cancel>取消</button>
+        ${f.zh_name ? `<button type="button" class="danger" data-delete="${esc(f.firm_key)}">删除中文名</button>` : ""}
+      </div>
+    </form>
+  </td></tr>`;
+}
+$("firmRows").addEventListener("click", async e => {
+  const ed = e.target.closest("[data-edit]"), cancel = e.target.closest("[data-cancel]"),
+        del = e.target.closest("[data-delete]"), use = e.target.closest("[data-use]");
+  if (use) { const z = $("ed-zh"); if (z) { z.value = use.dataset.use; $("ed-code").focus(); } return; }
+  if (ed) { editing = editing === ed.dataset.edit ? null : ed.dataset.edit; renderFirms(); const z = $("ed-zh"); if (z) z.focus(); }
+  if (cancel) { editing = null; renderFirms(); }
+  if (del) {
+    try { await rpc("admin_delete_firm2", { p_token: token, p_key: del.dataset.delete }); editing = null; await loadFirms(); toast("已删除"); }
+    catch (err) { toast(err.message, true); }
+  }
+});
+$("firmRows").addEventListener("submit", async e => {
+  const form = e.target.closest("form[data-save]"); if (!form) return;
+  e.preventDefault();
+  const f = firms.find(x => x.firm_key === form.dataset.save), d = new FormData(form);
+  try {
+    await rpc("admin_save_firm2", { p_token: token, p_key: f.firm_key, p_firm_en: f.firm_en, p_zh: d.get("zh"),
+      p_credit_code: d.get("code"), p_source_url: d.get("url"), p_note: d.get("note") });
+    editing = null; await loadFirms(); toast("已保存");
+  } catch (err) { toast(err.message, true); }
+});
+$("firmSearch").addEventListener("input", () => {
+  clearTimeout(firmTimer);
+  firmTimer = setTimeout(() => { firmPage = 1; editing = null; loadFirms().catch(err => toast(err.message, true)); }, 350);
+});
+$("firmStatus").addEventListener("change", () => { firmPage = 1; editing = null; loadFirms().catch(err => toast(err.message, true)); });
+
+// ---------- 翻译核对 ----------
+async function loadTerms() {
+  const res = await rpc("admin_terms_page", { p_token: token, p_status: $("termStatus").value,
+                                              p_offset: (termPage - 1) * PAGE, p_limit: PAGE });
+  terms = res.rows; termTotal = res.total;
+  if (!terms.length && termPage > 1) { termPage = Math.max(1, Math.ceil(termTotal / PAGE)); return loadTerms(); }
+  renderTerms();
+}
+function renderTerms() {
+  $("termCount").textContent = `共 ${termTotal} 条`;
+  $("termAll").classList.toggle("hidden", $("termStatus").value !== "machine" || !termTotal);
+  pager("termPager", termPage, termTotal, p => { termPage = p; loadTerms().catch(err => toast(err.message, true)); });
+  $("termRows").innerHTML = terms.map((t, i) => `<tr>
+    <td class="small">${esc(KIND_NAMES[t.kind] || t.kind)}</td>
+    <td>${esc(t.source)}</td>
+    <td><input id="term-${i}" value="${esc(t.zh)}" aria-label="中文译文" style="width:100%; min-width:200px"></td>
+    <td>${t.status === "verified" ? '<span class="tag ok">已核对</span>' : '<span class="tag mt">机翻</span>'}</td>
+    <td><button type="button" class="primary" data-term="${i}" style="white-space:nowrap">确认</button></td>
+  </tr>`).join("") || `<tr><td colspan="5" class="muted">没有需要核对的翻译。</td></tr>`;
+}
+$("termStatus").addEventListener("change", () => { termPage = 1; loadTerms().catch(err => toast(err.message, true)); });
+$("termAll").addEventListener("click", async () => {
+  if (!confirm(`将按现有译文确认全部 ${termTotal} 条待核对翻译，网站上的"机翻"标记会在下一次每日更新后去掉。确定吗？`)) return;
+  $("termAll").disabled = true;
+  try {
+    const n = await rpc("admin_verify_all_terms", { p_token: token });
+    toast(`已确认 ${n} 条`); termPage = 1; await loadTerms();
+  } catch (err) { toast(err.message, true); }
+  $("termAll").disabled = false;
+});
+$("termRows").addEventListener("click", async e => {
+  const b = e.target.closest("[data-term]"); if (!b) return;
+  const t = terms[+b.dataset.term];
+  try {
+    await rpc("admin_save_term", { p_token: token, p_kind: t.kind, p_source: t.source, p_zh: $("term-" + b.dataset.term).value });
+    await loadTerms(); toast("已确认");
+  } catch (err) { toast(err.message, true); }
+});
+
+// ---------- 产品图片 ----------
+const STORE = SUPABASE_URL + "/storage/v1/object/public/rasff/";
+let imgRecs = [], imgLoaded = false, imgPage = 1, imgChoice = {};
+async function loadImages() {
+  imgRecs = await rpc("admin_images", { p_token: token, p_status: $("imgStatus").value });
+  imgLoaded = true; imgChoice = {};
+  renderImages();
+}
+function renderImages() {
+  $("imgCount").textContent = `共 ${imgRecs.length} 条通报`;
+  const pages = Math.max(1, Math.ceil(imgRecs.length / PAGE));
+  if (imgPage > pages) imgPage = pages;
+  pager("imgPager", imgPage, imgRecs.length, p => { imgPage = p; renderImages(); window.scrollTo(0, $("tab-images").offsetTop); });
+  const start = (imgPage - 1) * PAGE;
+  $("imgList").innerHTML = imgRecs.slice(start, start + PAGE).map((r, i) => { const ri = start + i;
+    const imgs = r.images.map(im => {
+      const st = imgChoice[im.id] || im.status;
+      const border = st === "approved" ? "var(--good)" : st === "rejected" ? "var(--bad)" : (im.ai_ok ? "var(--good)" : "var(--line)");
+      const style = st === "candidate" && im.ai_ok ? "dashed" : "solid";
+      return `<figure style="margin:0; width:180px">
+        <button type="button" data-img="${im.id}" data-rec="${ri}" title="点击切换通过 / 不通过"
+          style="padding:0; border:3px ${style} ${border}; border-radius:8px; background:#fff; width:180px; height:180px; cursor:pointer">
+          <img src="${esc(STORE + im.path)}" alt="" loading="lazy" style="width:100%; height:100%; object-fit:contain; border-radius:5px"></button>
+        <figcaption class="small" style="margin-top:4px">
+          <b style="color:${st === "approved" ? "var(--good)" : st === "rejected" ? "var(--bad)" : "var(--muted)"}">${st === "approved" ? "通过" : st === "rejected" ? "不通过" : "待审核"}</b>
+          · AI：${im.ai_ok === true ? "产品图" : im.ai_ok === false ? "不是" : "未判断"}
+          <div class="muted">${esc(im.ai_note || "")}</div>
+          <div class="muted">${im.w}×${im.h}</div>
+        </figcaption></figure>`;
+    }).join("");
+    const pages = [...new Set(r.images.map(i => i.page_url))];
+    return `<div class="card" style="padding:12px">
+      <div><b>${esc(r.product)}</b> <span class="small muted">${esc(r.pub_date)} · ${esc(r.grp)} · ${esc(r.record_id)}</span></div>
+      <div class="small">${esc((r.detail || "").slice(0, 160))}</div>
+      <div class="small muted">${esc(r.product_orig || "")}</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin:10px 0">${imgs}</div>
+      <div class="actions">
+        <button type="button" class="primary" data-save="${ri}">保存本条</button>
+        <button type="button" data-ai="${ri}">采用 AI 推荐</button>
+        <button type="button" data-none="${ri}">全部不通过</button>
+        ${pages.map(u => `<a class="small" href="${esc(u)}" target="_blank" rel="noopener">打开警示页</a>`).join(" ")}
+        <a class="small" href="${esc(r.url)}" target="_blank" rel="noopener">通报原文</a>
+      </div></div>`;
+  }).join("") || `<p class="muted">没有需要审核的图片。</p>`;
+}
+async function saveRec(ri, mode) {
+  const r = imgRecs[ri];
+  const want = {};
+  r.images.forEach(im => {
+    want[im.id] = mode === "ai" ? (im.ai_ok ? "approved" : "rejected") : mode === "none" ? "rejected" :
+      (imgChoice[im.id] || (im.status === "candidate" ? (im.ai_ok ? "approved" : "rejected") : im.status));
+  });
+  for (const st of ["approved", "rejected"]) {
+    const ids = Object.keys(want).filter(k => want[k] === st).map(Number);
+    if (ids.length) await rpc("admin_set_images", { p_token: token, p_ids: ids, p_status: st });
+  }
+  toast("已保存");
+  if ($("imgStatus").value === "candidate") { imgRecs.splice(ri, 1); renderImages(); }
+  else await loadImages();
+}
+$("imgList").addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  try {
+    if (b.dataset.img) {
+      const id = +b.dataset.img, r = imgRecs[+b.dataset.rec], im = r.images.find(x => x.id === id);
+      const cur = imgChoice[id] || im.status;
+      imgChoice[id] = cur === "approved" ? "rejected" : "approved";
+      renderImages();
+    } else if (b.dataset.save) await saveRec(+b.dataset.save, "manual");
+    else if (b.dataset.ai) await saveRec(+b.dataset.ai, "ai");
+    else if (b.dataset.none) await saveRec(+b.dataset.none, "none");
+  } catch (err) { toast(err.message, true); }
+});
+$("imgAllAi").addEventListener("click", async () => {
+  try {
+    const all = await rpc("admin_images", { p_token: token, p_status: "candidate" });
+    const ok = [], no = [];
+    all.forEach(r => r.images.forEach(im => {
+      if (im.status !== "candidate" || im.ai_ok === null || im.ai_ok === undefined) return;
+      (im.ai_ok ? ok : no).push(im.id);
+    }));
+    if (!ok.length && !no.length) { toast("没有待处理的图片"); return; }
+    if (!confirm(`将处理 ${all.length} 条通报的待审核图片：通过 ${ok.length} 张，不通过 ${no.length} 张。确定吗？`)) return;
+    $("imgAllAi").disabled = true;
+    if (ok.length) await rpc("admin_set_images", { p_token: token, p_ids: ok, p_status: "approved" });
+    if (no.length) await rpc("admin_set_images", { p_token: token, p_ids: no, p_status: "rejected" });
+    toast(`已通过 ${ok.length} 张，不通过 ${no.length} 张`);
+    await loadImages();
+  } catch (err) { toast(err.message, true); }
+  $("imgAllAi").disabled = false;
+});
+$("imgStatus").addEventListener("change", () => { imgPage = 1; loadImages().catch(err => toast(err.message, true)); });
+
+// ---------- 启动 ----------
+token = load("adminToken");
+if (token) enterApp().catch(() => showLogin());
+</script>
+</body>
+</html>
