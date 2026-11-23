@@ -110,6 +110,28 @@ td.rank { color: var(--muted); font-variant-numeric: tabular-nums; }
 td.num { font-weight: 700; font-variant-numeric: tabular-nums; }
 .todo { color: var(--muted); }
 .pill.np { color: var(--muted); border: 1px dashed var(--line); margin-left: 6px; }
+/* records card (design A): tabs, filters and table in one card */
+.list-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.tabbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 4px 16px; flex-wrap: wrap; padding: 0 20px; border-bottom: 1px solid var(--line); }
+.tabs { display: flex; gap: 28px; }
+.tabs button { font: inherit; font-size: 15px; color: var(--muted); background: none; border: 0; border-bottom: 3px solid transparent; padding: 16px 2px 13px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--accent); }
+.tabbar .count { padding-bottom: 15px; }
+.list-card .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; background: none; border: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: 14px 20px; }
+.list-card .seg button { font-size: 13px; padding: 6px 14px; }
+.list-card .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; flex: 1 1 auto; }
+.list-card .field { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.list-card .field select { min-width: 0; padding: 5px 8px; }
+.list-card .field[for="f-q"] { flex: 1 1 220px; }
+.list-card .field input[type="search"] { flex: 1; min-width: 0; padding: 5px 10px; }
+.list-card .table-box { border: 0; border-radius: 0; }
+.list-card th:first-child, .list-card td:first-child { padding-left: 20px; }
+.list-card th:last-child, .list-card td:last-child { padding-right: 20px; }
+@media (max-width: 600px) {
+  .tabs { gap: 18px; } .tabs button { font-size: 14px; padding: 12px 0 10px; }
+  .tabbar .count { padding-bottom: 8px; width: 100%; }
+  .list-card .field { width: 100%; } .list-card .field select, .list-card .field input[type="search"] { flex: 1; }
+}
 .list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .list-head h2 { font-size: 17px; margin: 0; }
 .count { font-size: 13px; color: var(--muted); }
@@ -196,33 +218,6 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
 
 <main>
   <div class="wrap">
-    <section class="controls" aria-label="筛选">
-      <div class="seg" id="scope" role="group" aria-label="产品范围">
-        <button type="button" data-scope="food" aria-pressed="true">食品相关</button>
-        <button type="button" data-scope="nonfood" aria-pressed="false">非食品</button>
-        <button type="button" data-scope="all" aria-pressed="false">全部</button>
-      </div>
-      <div class="filters">
-        <label class="field" for="f-period">时间范围
-          <select id="f-period"><option value="12m">最近 12 个月</option></select>
-        </label>
-        <label class="field" for="f-src">通报来源
-          <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option><option value="CPSC">美国 CPSC（消费品）</option><option value="AU">澳大利亚 农业部</option></select>
-        </label>
-        <label class="field" for="f-grp">产品类别
-          <select id="f-grp"></select>
-        </label>
-        <label class="field" for="f-prob">问题类型
-          <select id="f-prob"></select>
-        </label>
-        <label class="field" for="f-q">搜索
-          <input type="search" id="f-q" placeholder="产品、企业、原因，多个词用空格隔开">
-        </label>
-        <label class="check" for="f-lab"><input type="checkbox" id="f-lab"> 只看有实验室检测</label>
-        <button type="button" class="link-btn" id="reset">清除筛选</button>
-      </div>
-    </section>
-
     <section class="tiles" aria-label="汇总">
       <div class="tile"><span class="lbl">通报记录</span><span class="num" id="t-rec">0</span><span class="sub" id="t-rec-sub"></span></div>
       <div class="tile"><span class="lbl">货物批次</span><span class="num" id="t-ship">0</span><span class="sub">美国按报关单去重，其他每条算一批</span></div>
@@ -245,32 +240,59 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     </section>
 
     <section aria-label="通报记录">
-      <div class="list-head">
-        <h2>通报记录</h2>
-        <span class="count" id="count"></span>
-      </div>
-      <div class="seg" id="tabs" role="group" aria-label="列表方式" style="margin-top:10px">
-        <button type="button" data-tab="list" aria-pressed="true">全部通报（从新到旧）</button>
-        <button type="button" data-tab="firms" aria-pressed="false">企业上榜次数</button>
-        <button type="button" data-tab="brands" aria-pressed="false">品牌上榜次数</button>
-      </div>
-      <div class="table-box" id="list-box" style="margin-top:10px">
+      <div class="list-card">
+        <div class="tabbar">
+          <div class="tabs" id="tabs" role="group" aria-label="列表方式">
+            <button type="button" data-tab="list" aria-pressed="true">全部通报</button>
+            <button type="button" data-tab="firms" aria-pressed="false">企业上榜次数</button>
+            <button type="button" data-tab="brands" aria-pressed="false">品牌上榜次数</button>
+          </div>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="controls" role="region" aria-label="筛选">
+          <div class="seg" id="scope" role="group" aria-label="产品范围">
+            <button type="button" data-scope="food" aria-pressed="true">食品相关</button>
+            <button type="button" data-scope="nonfood" aria-pressed="false">非食品</button>
+            <button type="button" data-scope="all" aria-pressed="false">全部</button>
+          </div>
+          <div class="filters">
+            <label class="field" for="f-period">时间
+              <select id="f-period"><option value="12m">最近 12 个月</option></select>
+            </label>
+            <label class="field" for="f-src">来源
+              <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option><option value="CPSC">美国 CPSC（消费品）</option><option value="AU">澳大利亚 农业部</option></select>
+            </label>
+            <label class="field" for="f-grp">类别
+              <select id="f-grp"></select>
+            </label>
+            <label class="field" for="f-prob">问题
+              <select id="f-prob"></select>
+            </label>
+            <label class="field" for="f-q">搜索
+              <input type="search" id="f-q" placeholder="产品、企业、原因，多个词用空格隔开">
+            </label>
+            <label class="check" for="f-lab"><input type="checkbox" id="f-lab"> 只看有实验室检测</label>
+            <button type="button" class="link-btn" id="reset">清除筛选</button>
+          </div>
+        </div>
+      <div class="table-box" id="list-box">
         <table>
           <thead><tr><th>日期</th><th>来源</th><th>产品</th><th>问题和检出情况</th><th>企业</th><th>检测</th><th>原文</th></tr></thead>
           <tbody id="rows"><tr><td colspan="7" class="empty">正在加载数据…</td></tr></tbody>
         </table>
       </div>
-      <div class="table-box" id="firm-box" style="margin-top:10px" hidden>
+      <div class="table-box" id="firm-box" hidden>
         <table>
           <thead><tr><th>排名</th><th>企业</th><th>中文名</th><th>上榜次数</th><th>通报来源</th><th>最近一次</th><th>主要问题</th></tr></thead>
           <tbody id="firm-rows"></tbody>
         </table>
       </div>
-      <div class="table-box" id="brand-box" style="margin-top:10px" hidden>
+      <div class="table-box" id="brand-box" hidden>
         <table>
           <thead><tr><th>排名</th><th>品牌</th><th>上榜次数</th><th>通报来源</th><th>最近一次</th><th>产品类别</th><th>主要问题</th></tr></thead>
           <tbody id="brand-rows"></tbody>
         </table>
+      </div>
       </div>
       <p class="small" id="brand-note" style="margin:8px 2px 0" hidden>按当前筛选条件统计，一条通报算一次，品牌名不分大小写。品牌只有欧盟 Safety Gate（非食品）和新加坡食品局提供，未注明品牌的不计入。有些“品牌”其实是零售商或平台名称，照原文列出。</p>
       <p class="small" id="firm-note" style="margin:8px 2px 0" hidden>按当前筛选条件统计，一条通报算一次。英文名按大小写、标点和 CO./COMPANY 这类写法归并。欧盟 RASFF 不公开企业名，欧盟 Safety Gate 和新加坡食品局只给品牌，这三个来源不计入。中文名由人工逐个核实，未核实的显示“待核实”。“非生产企业”是按名称识别的货代、物流公司，美国 FDA 记录的有时是发货方而不是生产商。</p>
