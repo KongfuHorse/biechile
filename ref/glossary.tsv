@@ -1,0 +1,113 @@
+# English	Japanese	Chinese (mainland standard name)
+# Used by pipeline/mt.py: only the lines whose English or Japanese term appears in a batch are sent with it.
+# Pesticides
+tolfenpyrad	トルフェンピラド	唑虫酰胺
+fenpyroximate	フェンピロキシメート	唑螨酯
+chlorpyrifos	クロルピリホス	毒死蜱
+acetamiprid	アセタミプリド	啶虫脒
+imidacloprid	イミダクロプリド	吡虫啉
+thiamethoxam	チアメトキサム	噻虫嗪
+clothianidin	クロチアニジン	噻虫胺
+dinotefuran	ジノテフラン	呋虫胺
+thiacloprid	チアクロプリド	噻虫啉
+carbendazim	カルベンダジム	多菌灵
+procymidone	プロシミドン	腐霉利
+difenoconazole	ジフェノコナゾール	苯醚甲环唑
+fipronil	フィプロニル	氟虫腈
+bifenthrin	ビフェントリン	联苯菊酯
+pyridaben	ピリダベン	哒螨灵
+chlorfenapyr	クロルフェナピル	虫螨腈
+anthraquinone	アントラキノン	蒽醌
+ethylene oxide	エチレンオキシド	环氧乙烷
+2-chloroethanol	2-クロロエタノール	2-氯乙醇
+triazophos	トリアゾホス	三唑磷
+isoprocarb	イソプロカルブ	异丙威
+buprofezin	ブプロフェジン	噻嗪酮
+profenofos	プロフェノホス	丙溴磷
+hexaconazole	ヘキサコナゾール	己唑醇
+tebuconazole	テブコナゾール	戊唑醇
+propiconazole	プロピコナゾール	丙环唑
+myclobutanil	ミクロブタニル	腈菌唑
+fenbuconazole	フェンブコナゾール	腈苯唑
+propargite	プロパルギット	炔螨特
+indoxacarb	インドキサカルブ	茚虫威
+flonicamid	フロニカミド	氟啶虫酰胺
+pyraclostrobin	ピラクロストロビン	吡唑醚菌酯
+azoxystrobin	アゾキシストロビン	嘧菌酯
+kresoxim-methyl	クレソキシムメチル	醚菌酯
+chlorantraniliprole	クロラントラニリプロール	氯虫苯甲酰胺
+emamectin benzoate	エマメクチン安息香酸塩	甲氨基阿维菌素苯甲酸盐
+abamectin	アバメクチン	阿维菌素
+dimethomorph	ジメトモルフ	烯酰吗啉
+metalaxyl	メタラキシル	甲霜灵
+omethoate	オメトエート	氧乐果
+dimethoate	ジメトエート	乐果
+methomyl	メソミル	灭多威
+carbofuran	カルボフラン	克百威
+phorate	ホレート	甲拌磷
+chlormequat	クロルメコート	矮壮素
+paclobutrazol	パクロブトラゾール	多效唑
+thiophanate-methyl	チオファネートメチル	甲基硫菌灵
+tricyclazole	トリシクラゾール	三环唑
+isoprothiolane	イソプロチオラン	稻瘟灵
+cypermethrin	シペルメトリン	氯氰菊酯
+lambda-cyhalothrin	ラムダシハロトリン	高效氯氟氰菊酯
+cyhalothrin	シハロトリン	氯氟氰菊酯
+fenpropathrin	フェンプロパトリン	甲氰菊酯
+deltamethrin	デルタメトリン	溴氰菊酯
+etoxazole	エトキサゾール	乙螨唑
+haloxyfop	ハロキシホップ	氟吡甲禾灵
+fluazifop	フルアジホップ	吡氟禾草灵
+prometryn	プロメトリン	扑草净
+triadimefon	トリアジメホン	三唑酮
+tebufenozide	テブフェノジド	虫酰肼
+thiabendazole	チアベンダゾール	噻菌灵
+diphenylamine	ジフェニルアミン	二苯胺
+fluopyram	フルオピラム	氟吡菌酰胺
+dichlorvos	ジクロルボス	敌敌畏
+acephate	アセフェート	乙酰甲胺磷
+methamidophos	メタミドホス	甲胺磷
+diazinon	ダイアジノン	二嗪磷
+malathion	マラチオン	马拉硫磷
+glyphosate	グリホサート	草甘膦
+# Veterinary drugs
+chloramphenicol	クロラムフェニコール	氯霉素
+malachite green	マラカイトグリーン	孔雀石绿
+leucomalachite green	ロイコマラカイトグリーン	隐色孔雀石绿
+crystal violet	クリスタルバイオレット	结晶紫
+enrofloxacin	エンロフロキサシン	恩诺沙星
+ciprofloxacin	シプロフロキサシン	环丙沙星
+ofloxacin	オフロキサシン	氧氟沙星
+nitrofurazone	ニトロフラゾン	呋喃西林
+nitrofurans	ニトロフラン	硝基呋喃类
+semicarbazide	セミカルバジド	氨基脲
+AOZ	AOZ	呋喃唑酮代谢物（AOZ）
+sulfamethoxazole	スルファメトキサゾール	磺胺甲噁唑
+oxytetracycline	オキシテトラサイクリン	土霉素
+doxycycline	ドキシサイクリン	多西环素
+# Contaminants, microbes, additives
+aflatoxin	アフラトキシン	黄曲霉毒素
+ochratoxin	オクラトキシン	赭曲霉毒素
+histamine	ヒスタミン	组胺
+benzo(a)pyrene	ベンゾ(a)ピレン	苯并[a]芘
+3-MCPD	3-MCPD	3-氯丙醇
+glycidyl esters	グリシジル脂肪酸エステル	缩水甘油酯
+primary aromatic amines	一級芳香族アミン	初级芳香胺
+formaldehyde	ホルムアルデヒド	甲醛
+melamine	メラミン	三聚氰胺
+cadmium	カドミウム	镉
+Listeria monocytogenes	リステリア・モノサイトゲネス	单核细胞增生李斯特菌
+Salmonella	サルモネラ	沙门氏菌
+Bacillus cereus	セレウス菌	蜡样芽孢杆菌
+Escherichia coli	大腸菌	大肠杆菌
+coliforms	大腸菌群	大肠菌群
+norovirus	ノロウイルス	诺如病毒
+cyclamate	サイクラミン酸	甜蜜素（环己基氨基磺酸钠）
+sulphur dioxide	二酸化硫黄	二氧化硫
+sulfur dioxide	二酸化硫黄	二氧化硫
+erythrosine	エリスロシン	赤藓红
+TBHQ	TBHQ	特丁基对苯二酚（TBHQ）
+sodium benzoate	安息香酸ナトリウム	苯甲酸钠
+sorbic acid	ソルビン酸	山梨酸
+dibutyl phthalate	フタル酸ジブチル	邻苯二甲酸二丁酯
+DEHP	DEHP	邻苯二甲酸二（2-乙基己基）酯（DEHP）

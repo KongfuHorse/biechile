@@ -40,6 +40,42 @@ def available():
     return bool(API_KEY)
 
 
+def _load_glossary():
+    path = os.path.join(os.path.dirname(__file__), "..", "ref", "glossary.tsv")
+    out = []
+    if os.path.exists(path):
+        for line in open(path, encoding="utf-8"):
+            if line.strip() and not line.startswith("#"):
+                parts = [x.strip() for x in line.rstrip("\n").split("\t")]
+                if len(parts) == 3:
+                    out.append(parts)
+    return out
+
+
+GLOSSARY = _load_glossary()
+
+
+def glossary_note(texts):
+    """Lines of the glossary whose English or Japanese term appears in the texts, as a prompt note.
+    Longer terms are matched first and blanked out, so 'cyhalothrin' inside 'lambda-cyhalothrin' or
+    大腸菌 inside 大腸菌群 does not add a second, wrong line."""
+    blob = "\n".join(t for t in texts if t)
+    low = blob.lower()
+    found = set()
+    for en, ja, zh in sorted(GLOSSARY, key=lambda g: -len(g[0])):
+        pat = r"(?<![a-z0-9-])" + re.escape(en.lower()) + r"(?![a-z0-9])"
+        if en and re.search(pat, low):
+            found.add((en, ja, zh)); low = re.sub(pat, " ", low)
+    for en, ja, zh in sorted(GLOSSARY, key=lambda g: -len(g[1])):
+        if ja and ja in blob:
+            found.add((en, ja, zh)); blob = blob.replace(ja, " ")
+    hits = [f"{en} / {ja} => {zh}" for en, ja, zh in GLOSSARY if (en, ja, zh) in found]
+    if not hits:
+        return ""
+    return ("Use these standard mainland Chinese names for the substances and microbes below:\n"
+            + "\n".join(dict.fromkeys(hits)) + "\n\n")
+
+
 def _examples(kind, ref, n=25):
     items = list(ref.items())[:: max(1, len(ref) // n)][:n]
     return "\n".join(f"{k} => {v}" for k, v in items)
@@ -54,6 +90,7 @@ def translate(kind, terms, ref_examples):
         batch = terms[i:i + 20]
         prompt = (
             f"{STYLE[kind]}\n\nExamples of the style to follow:\n{_examples(kind, ref_examples)}\n\n"
+            + glossary_note(batch) +
             "Return only a JSON object that maps each input string exactly as given to its translation. "
             "No other text.\n\nInput:\n" + json.dumps(batch, ensure_ascii=False)
         )
@@ -173,6 +210,7 @@ def translate_items(src, items):
             "'超过残留限量' instead of a long sentence that cites the article of the law. Translate the whole text: "
             "if it has a line starting with 'Description:', keep it as a new line starting with '产品描述：'.\n"
             "3. types: one or more problem types from this list (use the Chinese key exactly):\n" + types + "\n\n"
+            + glossary_note([x.get("product", "") for x in batch] + [x.get("detail", "") for x in batch]) +
             "Return only a JSON array with one object per record, in the same order: "
             '[{"i": 0, "product_zh": "...", "detail_zh": "...", "types": ["..."]}]. No other text.\n\n'
             "Records:\n" + json.dumps([{"i": n, **x} for n, x in enumerate(batch)], ensure_ascii=False)
