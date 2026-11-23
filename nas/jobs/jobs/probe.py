@@ -75,7 +75,16 @@ def _settle(page, wait_ms):
 def _open(page, url, wait_ms):
     """Open a page the way a normal browser does. Some sites first serve a small script page
     that sets a cookie and then reloads itself; wait until that reload has finished."""
-    resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
+    resp, last = None, None
+    for i in range(3):  # some government sites are slow or drop the first connection
+        try:
+            resp = page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            break
+        except Exception as e:
+            last = e
+            page.wait_for_timeout(5000 * (i + 1))
+    else:
+        raise last
     _settle(page, wait_ms)
     page.wait_for_timeout(2000)
     _settle(page, wait_ms)
@@ -87,7 +96,10 @@ def _read(page):
     last = None
     for _ in range(5):
         try:
-            page.wait_for_load_state("load", timeout=15000)
+            try:
+                page.wait_for_load_state("load", timeout=15000)
+            except Exception:
+                pass  # a slow image or script should not stop us reading what is there
             html = page.content()
             text = page.inner_text("body") if page.query_selector("body") else ""
             return html, text
