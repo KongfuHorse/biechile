@@ -128,29 +128,30 @@
   <!-- 企业中文名 -->
   <section id="tab-firms" class="card">
     <div class="help">
-      FDA 只公布企业英文名。这里只填<b>人工核实过</b>的中文全称，网站上会显示为"中文名（已核实）"。
+      各国通报大多只给企业英文名。这里只填<b>人工核实过</b>的中文全称，网站上会显示为"中文名（已核实）"，用中文名或英文名都能搜到这家企业在所有来源里的记录。
       <ul>
-        <li>核实方法：打开 FDA 企业档案看英文地址，再到国家企业信用信息公示系统、企查查或天眼查找地址和业务都对得上的公司。</li>
+        <li>企业按英文名归并（不分大小写、标点，CO./COMPANY 这类写法算同一家），和网站"企业上榜次数"一致。</li>
+        <li>"AI 认识"：AI 表示它知道这家真实企业的中文名，可以点"采用"填进表单，但仍要你查证后再保存。"AI 推测"：按拼音和地名猜的，只能当检索关键词。</li>
         <li>保存时至少要填统一社会信用代码或来源链接，方便以后查证。</li>
-        <li>"AI 候选"是 AI 按英文名和地址猜的，只能当检索关键词，不能直接填进去。</li>
         <li>保存后，网站会在下一次每日更新（每天早上 6:23，纽约时间）后显示。</li>
       </ul>
     </div>
     <div class="bar">
-      <input id="firmSearch" type="search" placeholder="搜索英文名、中文名、城市、FEI" aria-label="搜索企业" style="flex:1; min-width:220px">
-      <label class="small" for="firmSort">排序
-        <select id="firmSort">
-          <option value="lines">被拒收总行数</option>
-          <option value="food">食品相关行数</option>
+      <input id="firmSearch" type="search" placeholder="搜索英文名或已核实的中文名" aria-label="搜索企业" style="flex:1; min-width:220px">
+      <label class="small" for="firmStatus">显示
+        <select id="firmStatus">
+          <option value="todo">未核实</option>
+          <option value="known">AI 认识的（未核实）</option>
+          <option value="ai">有 AI 结果的（未核实）</option>
+          <option value="done">已核实</option>
+          <option value="all">全部</option>
         </select>
       </label>
-      <label class="small" for="onlyFood" style="display:flex; gap:6px; align-items:center"><input type="checkbox" id="onlyFood"> 只看有食品相关记录的</label>
-      <label class="small" for="onlyTodo" style="display:flex; gap:6px; align-items:center"><input type="checkbox" id="onlyTodo"> 只看未核实</label>
       <span class="muted small" id="firmCount"></span>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>企业（FDA 原文）</th><th>被拒收</th><th>最近一次</th><th>中文名</th><th>查证</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>企业（原文）</th><th>上榜</th><th>最近一次</th><th>中文名</th><th>查证</th><th></th></tr></thead>
         <tbody id="firmRows"></tbody>
       </table>
     </div>
@@ -306,68 +307,70 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
   if (b.dataset.tab === "images" && !imgLoaded) loadImages().catch(err => toast(err.message, true));
 }));
 
-// ---------- 企业中文名 ----------
+// ---------- 企业中文名（按归并后的英文名，覆盖所有来源） ----------
+const SRC_NAME = { US: "美国 FDA", TW: "台湾", JP: "日本", KR: "韩国", AU: "澳大利亚", CPSC: "美国 CPSC" };
+let firmTotal = 0, firmTimer = null;
 async function loadFirms() {
-  firms = await rpc("admin_firms", { p_token: token, p_limit: 5000 });
+  const res = await rpc("admin_firms2", { p_token: token, p_status: $("firmStatus").value, p_q: $("firmSearch").value.trim(),
+                                          p_offset: (firmPage - 1) * PAGE, p_limit: PAGE });
+  firms = res.items || []; firmTotal = res.total || 0;
+  if (!firms.length && firmPage > 1) { firmPage = Math.max(1, Math.ceil(firmTotal / PAGE)); return loadFirms(); }
   renderFirms();
-}
-function firmView() {
-  const q = $("firmSearch").value.trim().toLowerCase(), todo = $("onlyTodo").checked, food = $("onlyFood").checked;
-  const list = firms.filter(f => {
-    if (todo && f.zh_name) return false;
-    if (food && !f.food_lines) return false;
-    if (!q) return true;
-    return [f.firm_en, f.zh_name, f.city, f.fei].join(" ").toLowerCase().includes(q);
-  });
-  if ($("firmSort").value === "food") list.sort((a, b) => (b.food_lines - a.food_lines) || (b.lines - a.lines));
-  return list;
 }
 function searchLinks(f) {
   const g = encodeURIComponent(`"${f.firm_en}" ${f.city || ""} China`);
-  return `<span class="links"><a href="${esc(f.profile_url)}" target="_blank" rel="noopener">FDA 档案</a>` +
+  return `<span class="links">` + (f.profile_url ? `<a href="${esc(f.profile_url)}" target="_blank" rel="noopener">FDA 档案</a>` : "") +
     `<a href="https://www.google.com/search?q=${g}" target="_blank" rel="noopener">Google</a>` +
     `<a href="https://www.gsxt.gov.cn/" target="_blank" rel="noopener">信用公示系统</a></span>`;
 }
 function candLinks(name) {
   const k = encodeURIComponent(name);
   return `<span class="links"><a href="https://www.qcc.com/web/search?key=${k}" target="_blank" rel="noopener">企查查</a>` +
-    `<a href="https://www.tianyancha.com/search?key=${k}" target="_blank" rel="noopener">天眼查</a></span>`;
+    `<a href="https://www.tianyancha.com/search?key=${k}" target="_blank" rel="noopener">天眼查</a>` +
+    `<a href="https://aiqicha.baidu.com/s?q=${k}" target="_blank" rel="noopener">爱企查</a></span>`;
+}
+function aiSummary(f) {
+  const c = Array.isArray(f.candidates) ? f.candidates : [];
+  const known = c.filter(x => x.basis === "known");
+  if (known.length) return `<div class="small"><span class="tag ok">AI 认识</span> ${esc(known[0].name)}</div>`;
+  if (c.length) return `<div class="small muted">AI 推测 ${c.length} 个</div>`;
+  return "";
 }
 function renderFirms() {
-  const view = firmView(), done = firms.filter(f => f.zh_name).length;
-  const pages = Math.max(1, Math.ceil(view.length / PAGE));
-  if (firmPage > pages) firmPage = pages;
-  $("firmCount").textContent = `共 ${firms.length} 家，已核实 ${done} 家，符合条件 ${view.length} 家`;
-  pager("firmPager", firmPage, view.length, p => { firmPage = p; editing = null; renderFirms(); });
-  $("firmRows").innerHTML = view.slice((firmPage - 1) * PAGE, firmPage * PAGE).map(f => {
-    const rank = view.indexOf(f) + 1;
+  $("firmCount").textContent = `符合条件 ${firmTotal} 家`;
+  pager("firmPager", firmPage, firmTotal, p => { firmPage = p; editing = null; loadFirms().catch(err => toast(err.message, true)); });
+  $("firmRows").innerHTML = firms.map((f, i) => {
+    const rank = (firmPage - 1) * PAGE + i + 1;
     const zh = f.zh_name
       ? `<span class="tag ok">已核实</span> ${esc(f.zh_name)}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
-      : `<span class="tag none">未核实</span>`;
-    let row = `<tr data-fei="${esc(f.fei)}">
+      : `<span class="tag none">未核实</span>${aiSummary(f)}`;
+    const srcs = (f.sources || []).map(s => SRC_NAME[s] || s).join("、");
+    let row = `<tr data-key="${esc(f.firm_key)}">
       <td class="num">${rank}</td>
-      <td><b>${esc(f.firm_en)}</b><div class="small muted">${esc(f.city || "")} · FEI ${esc(f.fei)}</div></td>
-      <td class="num">${f.lines} 行<div class="small muted">${f.shipments} 批 · 食品相关 ${f.food_lines} 行</div></td>
+      <td><b>${esc(f.firm_en)}</b><div class="small muted">${esc(srcs)}${f.city ? " · " + esc(f.city) : ""}${f.fei ? " · FEI " + esc(f.fei) : ""}</div></td>
+      <td class="num">${f.n} 次</td>
       <td class="num">${esc(f.last_date)}<div class="small muted">${esc(f.last_product || "")}</div></td>
       <td>${zh}</td>
       <td>${searchLinks(f)}</td>
-      <td><button type="button" data-edit="${esc(f.fei)}">${f.zh_name ? "修改" : "核实"}</button></td>
+      <td><button type="button" data-edit="${esc(f.firm_key)}">${f.zh_name ? "修改" : "核实"}</button></td>
     </tr>`;
-    if (editing === f.fei) row += editorRow(f);
+    if (editing === f.firm_key) row += editorRow(f);
     return row;
   }).join("") || `<tr><td colspan="7" class="muted">没有符合条件的企业。</td></tr>`;
 }
 function editorRow(f) {
-  const cands = Array.isArray(f.candidates) && f.candidates.length
-    ? `<div class="cands"><div class="warn">AI 猜测，只能当检索关键词，不能直接填写。</div>` +
-      (f.address ? `<div class="small muted">FDA 登记地址：${esc(f.address)}</div>` : "") +
-      f.candidates.map(c => `<div><b>${esc(c.name)}</b> <span class="small muted">${esc(c.reason || "")}</span> ${candLinks(c.name)}</div>`).join("") +
-      `</div>`
-    : `<div class="cands small muted">还没有 AI 候选（每日任务会给被拒收最多的企业逐步生成）。</div>`;
+  const c = Array.isArray(f.candidates) ? f.candidates : [];
+  const cands = c.length
+    ? `<div class="cands">` +
+      c.map(x => `<div style="margin:3px 0">${x.basis === "known" ? '<span class="tag ok">AI 认识</span>' : '<span class="tag none">AI 推测</span>'}
+        <b>${esc(x.name)}</b> <span class="small muted">${esc(x.reason || "")}</span> ${candLinks(x.name)}
+        ${x.basis === "known" ? `<button type="button" class="small" data-use="${esc(x.name)}">采用</button>` : ""}</div>`).join("") +
+      `<div class="warn" style="margin-top:4px">AI 的结果都要查证：在企查查、天眼查或信用公示系统里核对地址和经营范围，再填信用代码或来源链接。</div></div>`
+    : `<div class="cands small muted">还没有 AI 结果（每日任务会按上榜次数从多到少逐步生成）。</div>`;
   const id = s => `ed-${s}`;
   return `<tr class="editor"><td></td><td colspan="6">
     ${cands}
-    <form class="form-grid" data-save="${esc(f.fei)}">
+    <form class="form-grid" data-save="${esc(f.firm_key)}">
       <label for="${id("zh")}">中文全称（核实过的）<input id="${id("zh")}" name="zh" value="${esc(f.zh_name || "")}" required></label>
       <label for="${id("code")}">统一社会信用代码<input id="${id("code")}" name="code" value="${esc(f.credit_code || "")}" maxlength="18"></label>
       <label class="wide" for="${id("url")}">来源链接<input id="${id("url")}" name="url" type="url" value="${esc(f.source_url || "")}" placeholder="https://..."></label>
@@ -375,34 +378,37 @@ function editorRow(f) {
       <div class="actions wide">
         <button type="submit" class="primary">保存为已核实</button>
         <button type="button" data-cancel>取消</button>
-        ${f.zh_name ? `<button type="button" class="danger" data-delete="${esc(f.fei)}">删除中文名</button>` : ""}
+        ${f.zh_name ? `<button type="button" class="danger" data-delete="${esc(f.firm_key)}">删除中文名</button>` : ""}
       </div>
     </form>
   </td></tr>`;
 }
 $("firmRows").addEventListener("click", async e => {
-  const ed = e.target.closest("[data-edit]"), cancel = e.target.closest("[data-cancel]"), del = e.target.closest("[data-delete]");
+  const ed = e.target.closest("[data-edit]"), cancel = e.target.closest("[data-cancel]"),
+        del = e.target.closest("[data-delete]"), use = e.target.closest("[data-use]");
+  if (use) { const z = $("ed-zh"); if (z) { z.value = use.dataset.use; $("ed-code").focus(); } return; }
   if (ed) { editing = editing === ed.dataset.edit ? null : ed.dataset.edit; renderFirms(); const z = $("ed-zh"); if (z) z.focus(); }
   if (cancel) { editing = null; renderFirms(); }
   if (del) {
-    try { await rpc("admin_delete_firm", { p_token: token, p_fei: del.dataset.delete }); editing = null; await loadFirms(); toast("已删除"); }
+    try { await rpc("admin_delete_firm2", { p_token: token, p_key: del.dataset.delete }); editing = null; await loadFirms(); toast("已删除"); }
     catch (err) { toast(err.message, true); }
   }
 });
 $("firmRows").addEventListener("submit", async e => {
   const form = e.target.closest("form[data-save]"); if (!form) return;
   e.preventDefault();
-  const f = firms.find(x => x.fei === form.dataset.save), d = new FormData(form);
+  const f = firms.find(x => x.firm_key === form.dataset.save), d = new FormData(form);
   try {
-    await rpc("admin_save_firm", { p_token: token, p_fei: f.fei, p_firm_en: f.firm_en, p_zh: d.get("zh"),
+    await rpc("admin_save_firm2", { p_token: token, p_key: f.firm_key, p_firm_en: f.firm_en, p_zh: d.get("zh"),
       p_credit_code: d.get("code"), p_source_url: d.get("url"), p_note: d.get("note") });
     editing = null; await loadFirms(); toast("已保存");
   } catch (err) { toast(err.message, true); }
 });
-$("firmSearch").addEventListener("input", () => { firmPage = 1; renderFirms(); });
-$("onlyTodo").addEventListener("change", () => { firmPage = 1; renderFirms(); });
-$("onlyFood").addEventListener("change", () => { firmPage = 1; renderFirms(); });
-$("firmSort").addEventListener("change", () => { firmPage = 1; renderFirms(); });
+$("firmSearch").addEventListener("input", () => {
+  clearTimeout(firmTimer);
+  firmTimer = setTimeout(() => { firmPage = 1; editing = null; loadFirms().catch(err => toast(err.message, true)); }, 350);
+});
+$("firmStatus").addEventListener("change", () => { firmPage = 1; editing = null; loadFirms().catch(err => toast(err.message, true)); });
 
 // ---------- 翻译核对 ----------
 async function loadTerms() {
