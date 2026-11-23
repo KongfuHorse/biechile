@@ -229,7 +229,7 @@ def main():
         # a failure here does not fail the run
         if "firms" not in a.skip:
             try:
-                n = firms.generate_candidates2(int(os.environ.get("FIRM_AI_LIMIT") or 60))
+                n = firms.generate_candidates2(int(os.environ.get("FIRM_AI_LIMIT") or 0))  # off unless a run asks for it
                 if n:
                     db.log_run("firms", n, n, "ok", "AI candidate names for admin review")
             except Exception:

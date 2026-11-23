@@ -14,7 +14,7 @@ on:
         required: false
         default: ""
       firm_ai:
-        description: "How many firms get AI Chinese names in this run (default 60)."
+        description: "How many firms get AI Chinese names in this run (default 0: off)."
         required: false
         default: ""
   push:
