@@ -4,6 +4,9 @@ then compare the labelled companies with the firms on our overseas list.
 Input: rows of nas_jobs (kind 'fetch', done) whose URL is a notice page of the SAMR food sampling column.
 Run: python -m pipeline.cn_samr            (parse + store + report)
 """
+import base64
+import datetime
+import io
 import json
 import re
 import sys
@@ -102,15 +105,128 @@ def key(n):
     return n
 
 
+def _html_text(html):
+    """Visible text of a notice page, with paragraph breaks kept."""
+    m = re.search(r"<!--\s*正文开始?\s*-->(.*?)<!--\s*正文结束\s*-->", html, re.S)
+    body = m.group(1) if m else html
+    body = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", "", body)
+    body = re.sub(r"(?i)<br\s*/?>|</p>|</div>|</h\d>|</li>|</tr>", "\n", body)
+    body = re.sub(r"<[^>]+>", "", body)
+    body = re.sub(r"&nbsp;|&#160;", " ", body).replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    return re.sub(r"[ \t\u3000]*\n[ \t\u3000\n]*", "\n\n", body)
+
+
 def notices():
-    ids = db.fetch_table("nas_jobs", "id", "&kind=eq.fetch&status=eq.done&args->>url=like.*samr.gov.cn/zw/zfxxgk/fdzdgknr/spcjs/art/*&order=id")
-    for row in ids:
-        r = requests.get(f"{db.URL}/rest/v1/nas_jobs?select=args,result&id=eq.{row['id']}", headers=db._h(), timeout=120)
+    """Yield (url, title, text, [(attachment name, bytes)]) for every notice page the NAS has downloaded.
+    The newest download of a page wins."""
+    jobs = db.fetch_table("nas_jobs", "id", "&kind=eq.pages&status=eq.done&order=id.desc")
+    done = set()
+    for row in jobs:
+        r = requests.get(f"{db.URL}/rest/v1/nas_jobs?select=result&id=eq.{row['id']}", headers=db._h(), timeout=120)
         r.raise_for_status()
-        j = r.json()[0]
-        res = j["result"] or {}
-        if res.get("text"):
-            yield j["args"]["url"], res.get("title") or "", res["text"]
+        res = (r.json()[0]["result"] or {}).get("results", [])
+        files = {}
+        if any(d.get("file") for it in res for d in it.get("docs", [])):
+            f = requests.get(f"{db.URL}/rest/v1/nas_files?select=name,b64&job_id=eq.{row['id']}", headers=db._h(), timeout=120)
+            f.raise_for_status()
+            files = {x["name"]: x["b64"] for x in f.json()}
+        for it in res:
+            u = it.get("url", "")
+            if u in done or "/spcjs/art/" not in u or not it.get("html"):
+                continue
+            done.add(u)
+            html = it["html"]
+            m = re.search(r"<title>(.*?)</title>", html, re.S)
+            title = re.sub(r"\s+", "", m.group(1)) if m else ""
+            title = re.sub(r"[-_|].*$", "", title) or title
+            docs = [(d["name"], base64.b64decode(files[d["file"]])) for d in it.get("docs", [])
+                    if d.get("file") in files and d.get("ext") in ("xlsx", "xls")]
+            yield u, title, _html_text(html), docs
+
+
+HEAD = {
+    "序号": "seq", "标称生产企业名称": "maker", "标称生产企业地址": "maker_addr", "被抽样单位名称": "seller",
+    "被抽样单位地址": "seller_addr", "样品名称": "product", "食品名称": "product", "规格型号": "spec", "商标": "brand",
+    "生产日期": "prod_date", "生产日期/批号": "prod_date", "生产日期（批号）": "prod_date", "不合格项目": "problem",
+    "不合格项目║检验结果║标准值": "problem", "检验结果": "test_value", "检验值": "test_value", "标准值": "standard_value",
+    "检验机构": "lab", "食品细类": "category", "分类": "category", "抽样编号": "sample_no", "备注": "note",
+}
+
+
+def _cell(v):
+    if v is None:
+        return None
+    if isinstance(v, (datetime.date, datetime.datetime)):
+        return v.strftime("%Y-%m-%d")
+    v = re.sub(r"\s+", " ", str(v)).strip()
+    return None if v in ("", "/", "-", "—") else v
+
+
+def read_sheet(data):
+    """Rows of a failed-sample table as dicts (keys from HEAD). Header row found by its 序号 cell."""
+    rows = []
+    try:
+        if data[:4] == b"PK\x03\x04":
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+            sheets = [list(ws.iter_rows(values_only=True)) for ws in wb.worksheets]
+        else:
+            import xlrd
+            wb = xlrd.open_workbook(file_contents=data)
+            sheets = [[sh.row_values(i) for i in range(sh.nrows)] for sh in wb.sheets()]
+    except Exception as e:
+        print("  cannot read sheet:", e)
+        return rows
+    for sh in sheets:
+        cols = None
+        for raw in sh:
+            vals = [_cell(v) for v in raw]
+            if cols is None:
+                names = [re.sub(r"\s", "", v or "") for v in vals]
+                if "序号" in names and any("名称" in n for n in names):
+                    cols = [HEAD.get(n) for n in names]
+                    # a second 备注 column holds the sale channel
+                    seen = set()
+                    for i, c in enumerate(cols):
+                        if c == "note" and "note" in seen:
+                            cols[i] = "channel"
+                        if c:
+                            seen.add(c)
+                continue
+            if not any(vals):
+                continue
+            d = {c: v for c, v in zip(cols, vals) if c and v}
+            if d.get("product") and (d.get("maker") or d.get("seller")):
+                rows.append(d)
+    return rows
+
+
+def from_sheets(url, title, no, date, text_rows, docs):
+    out = []
+    for fi, (name, data) in enumerate(docs, 1):
+        for i, d in enumerate(read_sheet(data), 1):
+            note = " ".join(x for x in (d.get("note"), d.get("channel")) if x)
+            maker = d.get("maker")
+            # link back to the paragraph in the notice text, for the other labelled firms and the dispute result
+            t = next((r for r in text_rows if d["product"] and r["product"] and (d["product"] in r["product"] or r["product"] in d["product"])
+                      and (not maker or (r["maker_role"] or "").find(re.sub(r"^.*?：", "", maker.split("；")[0])[:4]) >= 0
+                           or (r["seller"] or "").find((d.get("seller") or "")[:4]) >= 0)), None)
+            if maker and "：" in maker:  # "经销商：A；生产商：/；原产国：美国"
+                parts = dict(p.split("：", 1) for p in maker.split("；") if "：" in p)
+                maker = next((v for k, v in parts.items() if "生产" in k and v not in ("/", "")), None) or \
+                        next((v for v in parts.values() if v not in ("/", "")), None)
+            dispute = (t or {}).get("dispute_note") or ""
+            disputed = bool(re.search(r"异议|假冒|不是.{0,40}(生产|进口|经销)|冒用|仿冒", note + dispute))
+            out.append({"notice_url": url, "notice_title": title, "notice_no": no, "notice_date": date,
+                        "item_no": fi * 1000 + i, "source": "xlsx", "attachment": name,
+                        "maker": maker, "maker_addr": d.get("maker_addr"), "maker_role": (t or {}).get("maker_role") or (f"生产:{maker}" if maker else None),
+                        "product": d.get("product"), "problem": d.get("problem"), "test_value": d.get("test_value"),
+                        "standard_value": d.get("standard_value"), "seller": d.get("seller"), "seller_addr": d.get("seller_addr"),
+                        "platform": (t or {}).get("platform"), "origin": (t or {}).get("origin"), "spec": d.get("spec"),
+                        "brand": d.get("brand"), "prod_date": d.get("prod_date"), "lab": d.get("lab"), "category": d.get("category"),
+                        "sample_no": d.get("sample_no"), "disputed": disputed,
+                        "dispute_note": (dispute or note or None), "raw": json.dumps(d, ensure_ascii=False)})
+    return out
 
 
 def store(rows):
@@ -133,18 +249,31 @@ def our_firms():
 
 def main():
     rows, n_notices, empty = [], 0, []
-    for url, title, text in notices():
+    n_sheet = 0
+    for url, title, text, docs in notices():
         n_notices += 1
         got = parse(text, url, title)
-        if not got:
+        h = header(text)
+        sheet = from_sheets(url, title, h["no"], h["date"], got, docs) if docs else []
+        if sheet:
+            n_sheet += 1
+            rows += sheet
+        else:
+            for r in got:
+                r["source"] = "text"
+            rows += got
+        if not got and not sheet:
             empty.append(f"{title} {url}")
-        rows += got
     seen, uniq = set(), []
     for r in rows:
         k = (r["notice_url"], r["item_no"])
         if k not in seen:
             seen.add(k)
             uniq.append(r)
+    keys = sorted({k for r in uniq for k in r})
+    uniq = [{k: r.get(k) for k in keys} for r in uniq]
+    for r in uniq:
+        r["disputed"] = bool(r["disputed"])
     store(uniq)
     years = {}
     for r in uniq:
@@ -152,6 +281,7 @@ def main():
         years[y] = years.get(y, 0) + 1
     print(f"notices {n_notices}, items {len(uniq)}, with maker {sum(1 for r in uniq if r['maker'])}, "
           f"disputed {sum(r['disputed'] for r in uniq)}, by year {dict(sorted(years.items()))}")
+    print(f"notices read from Excel tables: {n_sheet}; from text only: {n_notices - n_sheet}")
     print(f"notices with no parsed items: {len(empty)}")
     for e in empty[:40]:
         print("  EMPTY", e)
@@ -176,6 +306,7 @@ def main():
             hit_firms.add(fk)
             for role, r in names[nm]:
                 lines.append(f"MATCH [{kind}] {fk[:50]} | {n} => {nm} | {role} | {r['product']} | {(r['problem'] or '')[:40]} | "
+                             f"{r.get('maker_addr') or ''} | "
                              f"{r['notice_date']}{' | 有异议/假冒核实' if r['disputed'] else ''} | {r['notice_url']}")
     for line in sorted(set(lines)):
         print(line)

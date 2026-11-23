@@ -21,3 +21,19 @@ create table if not exists cn_checks (
 create index if not exists cn_checks_maker_idx on cn_checks (maker);
 alter table cn_checks enable row level security;
 grant select, insert, update, delete on cn_checks to service_role;
+
+-- Excel tables attached to the notices give more detail than the notice text.
+alter table cn_checks
+  add column if not exists source text not null default 'text',
+  add column if not exists maker_addr text,
+  add column if not exists seller_addr text,
+  add column if not exists spec text,
+  add column if not exists brand text,
+  add column if not exists prod_date text,
+  add column if not exists test_value text,
+  add column if not exists standard_value text,
+  add column if not exists lab text,
+  add column if not exists category text,
+  add column if not exists sample_no text,
+  add column if not exists attachment text;
+create index if not exists cn_checks_sample_idx on cn_checks (sample_no);
