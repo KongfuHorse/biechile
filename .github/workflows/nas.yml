@@ -75,15 +75,21 @@ jobs:
       # Mainland copy: the NAS cannot reach Docker Hub, so it pulls from Alibaba Cloud ACR.
       # Skipped until the ALIYUN_* secrets exist.
       - if: env.ALIYUN_REGISTRY != ''
+        id: acr
+        run: |
+          # accept the host alone or a full image path, with or without https://
+          h="${ALIYUN_REGISTRY#https://}"; h="${h#http://}"; h="${h%%/*}"
+          echo "host=$h" >> $GITHUB_OUTPUT
+      - if: env.ALIYUN_REGISTRY != ''
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.ALIYUN_REGISTRY }}
+          registry: ${{ steps.acr.outputs.host }}
           username: ${{ secrets.ALIYUN_USERNAME }}
           password: ${{ secrets.ALIYUN_PASSWORD }}
       - if: env.ALIYUN_REGISTRY != ''
         run: |
           docker buildx imagetools create \
-            -t "$ALIYUN_REGISTRY/$ALIYUN_NAMESPACE/biechile-nas:latest" \
+            -t "${{ steps.acr.outputs.host }}/$ALIYUN_NAMESPACE/biechile-nas:latest" \
             ghcr.io/kongfuhorse/biechile-nas:latest
 
   code:
