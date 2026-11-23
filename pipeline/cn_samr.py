@@ -225,6 +225,8 @@ def from_sheets(url, title, no, date, text_rows, docs):
                         "platform": (t or {}).get("platform"), "origin": (t or {}).get("origin"), "spec": d.get("spec"),
                         "brand": d.get("brand"), "prod_date": d.get("prod_date"), "lab": d.get("lab"), "category": d.get("category"),
                         "sample_no": d.get("sample_no"), "disputed": disputed,
+                        # 2019 notices also attached tables of samples that passed
+                        "passed": not d.get("problem") and "不合格" not in name,
                         "dispute_note": (dispute or note or None), "raw": json.dumps(d, ensure_ascii=False)})
     return out
 
@@ -261,6 +263,7 @@ def main():
         else:
             for r in got:
                 r["source"] = "text"
+                r["passed"] = False
             rows += got
         if not got and not sheet:
             empty.append(f"{title} {url}")
@@ -295,7 +298,7 @@ def main():
     idx = {}
     for nm in names:
         idx.setdefault(key(nm), []).append(nm)
-    print(f"distinct labelled companies: {len(names)}")
+    print(f"distinct labelled companies: {len(names)}; passed samples: {sum(r['passed'] for r in uniq)}")
     firms = our_firms()
     hit_firms, lines = set(), []
     for kind, fk, n in firms:
@@ -303,9 +306,12 @@ def main():
         if len(k) < 4:
             continue
         for nm in idx.get(k, []):
+            a, b = re.findall(r"[（(](.*?)[)）]", n), re.findall(r"[（(](.*?)[)）]", nm)
+            if a and b and a[0] != b[0]:  # 中粮米业（大连） is not 中粮米业（五常）
+                continue
             hit_firms.add(fk)
             for role, r in names[nm]:
-                lines.append(f"MATCH [{kind}] {fk[:50]} | {n} => {nm} | {role} | {r['product']} | {(r['problem'] or '')[:40]} | "
+                lines.append(f"MATCH {'合格' if r['passed'] else '不合格'} [{kind}] {fk[:50]} | {n} => {nm} | {role} | {r['product']} | {(r['problem'] or '')[:40]} | "
                              f"{r.get('maker_addr') or ''} | "
                              f"{r['notice_date']}{' | 有异议/假冒核实' if r['disputed'] else ''} | {r['notice_url']}")
     for line in sorted(set(lines)):
