@@ -10,6 +10,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends tzdata fonts-noto-cjk ca-certificates \
+      xvfb x11vnc novnc websockify fluxbox \
  && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
@@ -17,7 +18,10 @@ RUN pip install --no-cache-dir -r /app/requirements.txt \
  && playwright install --with-deps chromium \
  && rm -rf /var/lib/apt/lists/*
 
-COPY bootstrap.py /app/bootstrap.py
+COPY bootstrap.py entrypoint.sh /app/
+RUN chmod +x /app/entrypoint.sh && ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 VOLUME /data
 WORKDIR /app
-CMD ["python", "/app/bootstrap.py"]
+# REMOTE_VIEW=1 also starts a browser view on port 16080 (open /vnc.html), protected by VNC_PASSWORD.
+EXPOSE 16080
+CMD ["/app/entrypoint.sh"]
