@@ -116,7 +116,7 @@ def _rows_from_table(table):
         if cols is None or not any(vals):
             continue
         d = {c: v for c, v in zip(cols, vals) if c and v}
-        if d.get("product") and (d.get("maker") or d.get("seller")) and re.match(r"\d+$", str(d.get("seq") or "")):
+        if d.get("product") and (d.get("maker") or d.get("seller")) and re.match(r"\d+(\.0)?$", str(d.get("seq") or "")):
             out.append(d)
     return out
 
@@ -158,7 +158,7 @@ def failed(d):
 # ---------- Shenzhen quality: failed items per product type from the notice text ----------
 
 def items_by_type(text):
-    """{product type: '不合格项目有：...'} from sections like '（五）通用电源 ... 不合格项目有：...。'"""
+    """{product type: (items, section text)} from sections like '（五）通用电源 ... 不合格项目有：...。'"""
     out = {}
     parts = re.split(r"\n\s*[（(]([一二三四五六七八九十]+)[)）]\s*", text)
     for i in range(2, len(parts), 2):
@@ -166,16 +166,19 @@ def items_by_type(text):
         name = body.split("\n", 1)[0].strip()
         m = re.search(r"不合格项目(?:有|为|主要有|主要为)?[:：](.*?)(?:。|\n|$)", body)
         if name and m:
-            out[name] = m.group(1).strip()
+            out[name] = (m.group(1).strip(), body)
     return out
 
 
 def _type_items(cat, table):
     if not cat:
         return ""
-    for k, v in table.items():
+    for k, (items, body) in table.items():
         if k and (k in cat or cat in k):
-            return v
+            return items
+    for k, (items, body) in table.items():  # '电源适配器' is listed inside the section '通用电源'
+        if cat in body:
+            return items
     return ""
 
 
@@ -186,6 +189,12 @@ def parse_notice(url, html, docs):
     text = _text(html)
     title = _title(html)
     date = _date(html, text)
+    if prog == "samr_quality" and date:
+        # pages moved to the new site in 2023 carry the move date; the notice text ends with the real date
+        signed = [f"{y}-{int(m):02d}-{int(d):02d}" for y, m, d in re.findall(r"(20\d{2})年(\d{1,2})月(\d{1,2})日", text)]
+        signed = [x for x in signed if x <= date]
+        if signed:
+            date = signed[-1]
     years = [int(y) for y in re.findall(r"(20\d{2})年", title)]
     if prog == "samr_quality" and (not years or min(years) < FROM_YEAR):
         return []
@@ -196,8 +205,8 @@ def parse_notice(url, html, docs):
     per_type = items_by_type(text) if prog == "sz_quality" else {}
     out = []
     for fi, (name, ext, data) in enumerate(docs, 1):
-        if prog == "samr_quality" and not re.search(r"不合格产品", name):
-            continue  # skip lists of firms that refused inspection or failed twice
+        if prog == "samr_quality" and re.search(r"拒检|连续|分析|计划", name):
+            continue  # skip lists of firms that refused inspection or failed twice, and analysis papers
         if ext in ("xlsx", "xls"):
             rows = sheet_rows(data)
         elif ext == "pdf" and prog == "sz_quality":
@@ -213,6 +222,8 @@ def parse_notice(url, html, docs):
                 problem = ("该类产品不合格项目有：" + it) if it else None
             if not problem and prog == "sz_food":
                 problem = re.sub(r"^不合格[，,；;：:\s]*", "", d.get("result") or "") or None
+            if problem:
+                problem = re.sub(r"[【】]", "", problem).strip("，,；; ")
             out.append({
                 "notice_url": url, "notice_title": title, "notice_no": no, "notice_date": date, "item_no": fi * 1000 + i,
                 "program": prog, "source": ext, "attachment": name, "maker": d.get("maker"), "maker_addr": d.get("maker_addr"),
