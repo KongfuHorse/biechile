@@ -38,6 +38,7 @@ def get(url):
 
 
 def _text(s):
+    s = (s or "").replace("\r", "")
     s = re.sub(r"<(br|/p|/li|/tr|/h\d)\b[^>]*>", "\n", s or "")
     s = htmllib.unescape(re.sub(r"<[^>]+>", "", s)).replace("\xa0", " ")
     lines = [re.sub(r"[ \t　]+", " ", x).strip(" -") for x in s.split("\n")]
@@ -59,7 +60,7 @@ def title(page):
 
 def _field(lines, *names):
     for ln in lines:
-        m = re.match(r"(%s)\s*[:：]\s*(.+)" % "|".join(names), ln)
+        m = re.match(r"(%s)\s*[:：︰]\s*(.+)" % "|".join(names), ln)
         if m:
             return m.group(2).strip()
     return ""
@@ -68,6 +69,13 @@ def _field(lines, *names):
 def mainland(origin):
     o = origin or ""
     return "中国" in o and not re.search(r"香港|台湾|澳门|台灣|澳門", o) or "内地" in o
+
+
+def _types(head, text, limit):
+    t = cn_site.problem_types(head + " " + text, limit)
+    if "标签" in head and t == ["产品标准"]:
+        t = ["标签"]
+    return t
 
 
 # ---------- food alerts ----------
@@ -111,8 +119,8 @@ def parse_alert(url, page):
         name = re.sub(r"^(产品\s*[一二三四五六七八九十\d]+\s*[:：]?\s*)", "", name)
         brand = _field(lines, "品牌", "牌子", "牌子名称")
         maker = _field(lines, "制造商", "生产商")
-        trader = _field(lines, "进口商", "分销商", "代理商", "经销商", "总经销商", "零售商")
-        rest = [ln for ln in lines if not re.match(r"(产品名称|名称|品牌|牌子|来源地|原产地|产地|制造商|生产商|进口商|分销商|代理商|经销商|总经销商|零售商)\s*[:：]", ln)]
+        trader = _field(lines, "进口商", "分销商", "代理商", "经销商", "总经销商", "包装商", "零售商")
+        rest = [ln for ln in lines if ln.strip() and not re.match(r"(产品名称|名称|品牌|牌子|来源地|原产地|产地|制造商|生产商|进口商|分销商|代理商|经销商|总经销商|包装商|零售商)\s*[:：︰]", ln)]
         note = []
         if brand:
             note.append("品牌：" + brand)
@@ -127,7 +135,7 @@ def parse_alert(url, page):
         out.append({
             "id": f"HK-FA-{slug}-{i}", "src": "HK", "pub_date": date, "insp_date": None, "grp": "食品",
             "ind": t.get("食品", ""), "ntype": "食物警报", "product": name, "product_orig": "",
-            "problems": cn_site.problem_types(head + " " + detail, "x"), "detail": head + "。" + detail,
+            "problems": _types(head, detail, "x"), "detail": head + "。" + detail,
             "legal_limit": "", "quantity": "", "firm": maker, "importer": trader,
             "lab_tested": bool(re.search(r"检测|检出|验出|含量", detail)), "entry_no": "",
             "action": "停售、回收", "note": "；".join(note)[:800], "url": url,
@@ -167,21 +175,21 @@ def parse_sample(url, page):
     limit = next((t[k] for k in t if re.search(r"限量|上限|标示含量|法定", k)), "")
     detail = head
     if item:
-        detail += "。项目：" + item.replace("\n", "、")
+        detail += "。项目：" + item.strip().replace("\n", "、")
     if found:
-        detail += "，检出：" + found.replace("\n", "、")
+        detail += "，检出：" + found.strip().replace("\n", "、")
     note = []
     for k in ("品牌", "净重", "此日期前最佳", "此日期或之前食用", "抽取样本地点"):
         if t.get(k):
-            note.append(f"{k}：{t[k]}")
+            note.append(f"{k}：" + t[k].replace("\n", " "))
     note.append("原产地：" + origin)
     if t.get("备注"):
-        note.append("备注：" + t["备注"].split("\n")[0])
+        note.append("备注：" + t["备注"].strip().split("\n")[0])
     return [{
         "id": f"HK-US-{slug}", "src": "HK", "pub_date": date, "insp_date": None, "grp": "食品", "ind": "",
         "ntype": "违规样本", "product": t.get("产品名称") or t.get("食物名称") or "", "product_orig": "",
-        "problems": cn_site.problem_types(head + " " + item, limit), "detail": detail,
-        "legal_limit": limit.replace("\n", "、"), "quantity": "", "firm": t.get("制造商") or t.get("生产商") or "",
+        "problems": _types(head, item, limit), "detail": detail,
+        "legal_limit": limit.strip().replace("\n", "、"), "quantity": "", "firm": t.get("制造商") or t.get("生产商") or "",
         "importer": t.get("进口商") or t.get("分销商") or "", "lab_tested": True, "entry_no": "", "action": "停售",
         "note": "；".join(note)[:800], "url": url, "raw": {"table": t, "title": head}, "machine_translated": False,
     }]
