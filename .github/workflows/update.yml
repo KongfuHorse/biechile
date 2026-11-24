@@ -10,7 +10,7 @@ on:
         required: false
         default: ""
       skip:
-        description: "Sources to skip, separated by spaces (tw us jp eu kr sg sfa cpsc au img firms). Leave empty to run all."
+        description: "Sources to skip, separated by spaces (tw us jp eu kr sg sfa cpsc au hk cn img firms). Leave empty to run all."
         required: false
         default: ""
       firm_ai:

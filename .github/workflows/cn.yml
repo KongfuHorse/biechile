@@ -1,19 +1,39 @@
 name: CN sampling notices
 
 # Parses the notice pages the NAS has downloaded into cn_checks and prints the match report.
+# With hk_from set, also loads Hong Kong CFS records from that year (one-off backfill).
 on:
   workflow_dispatch:
+    inputs:
+      hk_from:
+        description: "Also load Hong Kong records from this year (e.g. 2020). Leave empty to skip."
+        required: false
+        default: ""
 
 jobs:
   parse:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install requests openpyxl xlrd
-      - run: python -m pipeline.cn_samr
+      - run: pip install -r requirements.txt
+      - run: python -m pipeline.cn_samr && python -m pipeline.cn_more
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - if: ${{ github.event.inputs.hk_from != '' }}
+        run: |
+          python - <<'PY'
+          from pipeline import db, hk
+          recs = hk.fetch(int("${{ github.event.inputs.hk_from }}"), known=db.ids("HK"))
+          n = db.upsert(recs) if recs else 0
+          db.log_run("HK", len(recs), n, "ok", "backfill")
+          print("HK stored", n)
+          PY
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          PYTHONUNBUFFERED: "1"
