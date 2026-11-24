@@ -119,7 +119,7 @@ def _html_text(html):
 def notices(since=None):
     """Yield (url, title, text, [(attachment name, bytes)]) for every notice page the NAS has downloaded
     (only jobs created on or after since, if given). The newest download of a page wins."""
-    jobs = db.fetch_table("nas_jobs", "id", "&kind=eq.pages&status=eq.done&order=id.desc" + (f"&created_at=gte.{since}" if since else ""))
+    jobs = db.fetch_table("nas_jobs", "id", "&kind=eq.pages&status=eq.done&order=id.desc" + (f"&finished_at=gte.{since}" if since else ""))
     done = set()
     for row in jobs:
         r = requests.get(f"{db.URL}/rest/v1/nas_jobs?select=result&id=eq.{row['id']}", headers=db._h(), timeout=120)

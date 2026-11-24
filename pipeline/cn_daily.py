@@ -70,7 +70,7 @@ def run(days=3, log=print):
     asked = set()
     for j in db.fetch_table("nas_jobs", "args", "&kind=eq.pages"):
         asked |= set((j.get("args") or {}).get("urls") or [])
-    lists = _rest(f"nas_jobs?select=id,result&kind=eq.pages&status=eq.done&created_at=gte.{since}&order=id.desc&args->>lists=eq.1")
+    lists = _rest(f"nas_jobs?select=id,result&kind=eq.pages&status=eq.done&finished_at=gte.{since}&order=id.desc&args->>lists=eq.1")
     new = []
     for j in lists or []:
         for it in (j.get("result") or {}).get("results", []):

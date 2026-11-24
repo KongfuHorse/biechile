@@ -65,7 +65,7 @@ def _date(html, text):
 def downloads(since=None):
     """(url, html, [(name, ext, bytes)]) of every notice page the NAS downloaded (jobs created on or after
     since, if given); newest download wins."""
-    jobs = db.fetch_table("nas_jobs", "id", "&kind=eq.pages&status=eq.done&order=id.desc" + (f"&created_at=gte.{since}" if since else ""))
+    jobs = db.fetch_table("nas_jobs", "id", "&kind=eq.pages&status=eq.done&order=id.desc" + (f"&finished_at=gte.{since}" if since else ""))
     seen = set()
     for row in jobs:
         r = requests.get(f"{db.URL}/rest/v1/nas_jobs?select=result&id=eq.{row['id']}", headers=db._h(), timeout=120)
