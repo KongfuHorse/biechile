@@ -78,6 +78,9 @@ jobs:
         with:
           path: site
 
+      - name: Wait for GitHub to register the uploaded site (deploy sometimes cannot find it right away)
+        run: sleep 20
+
       - id: deploy
         uses: actions/deploy-pages@v5
 
