@@ -266,7 +266,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
               <select id="f-period"><option value="12m">最近 12 个月</option></select>
             </label>
             <label class="field" for="f-src">来源
-              <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option><option value="CPSC">美国 CPSC（消费品）</option><option value="AU">澳大利亚 农业部</option><option value="CN">中国大陆 市场监管总局</option><option value="SZ">深圳市 市场监管局</option><option value="HK">中国香港 食物安全中心</option></select>
+              <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">中国台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option><option value="CPSC">美国 CPSC（消费品）</option><option value="AU">澳大利亚 农业部</option><option value="CN">中国大陆 市场监管总局</option><option value="SZ">深圳市 市场监管局</option><option value="HK">中国香港 食物安全中心</option></select>
             </label>
             <label class="field" for="f-grp">类别
               <select id="f-grp"></select>
@@ -314,7 +314,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       <ul>
         <li>美国 FDA 按货物明细行记录，一票货可能有多行。"货物批次"按报关单号去重计算。</li>
         <li>FDA 的拒收不一定经过化验。很多是依据进口警报、标签或注册手续直接拒收，文书用语是"appears to"（看起来）。"检测"一栏只标出有 FDA 或私人实验室化验记录的。</li>
-        <li>台湾的记录都是边境抽样检验的结果。"食品接触材料"指餐具、烘焙纸、砧板等容器具。</li>
+        <li>中国台湾的记录都是边境抽样检验的结果。"食品接触材料"指餐具、烘焙纸、砧板等容器具。</li>
         <li>日本的记录来自厚生劳动省每月公布的进口时违反事例，都是检疫所检验不合格的货物。</li>
         <li>欧盟 RASFF 包括两类：口岸检查发现的"边境拒绝"，和在市场上抽检发现后发出的预警、信息通报。来源一栏标明了类型。欧盟公开数据不包含企业名称和品牌。</li>
         <li>韩国食药处的进口不合格名单只公开最近约半年（本站最早的韩国记录是 2026 年 5 月），本站每天保存新记录，更早的无法补齐。</li>
@@ -349,8 +349,8 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
   var WARN = ["色素/添加剂", "材质/溶出", "卫生/生产", "受伤", "视力/听力损伤", "环境危害"];
   var SOON = ["泰国 FDA", "越南"];
   var SRC = ["US", "TW", "JP", "EU", "KR", "SG", "SFA", "CPSC", "AU", "CN", "SZ", "HK"];
-  var SRC_NAME = { US: "美国", TW: "台湾", JP: "日本", EU: "欧盟", KR: "韩国", SG: "欧盟·非食品", SFA: "新加坡", CPSC: "美国·消费品", AU: "澳大利亚", CN: "中国大陆", SZ: "深圳", HK: "中国香港" };
-  var SRC_FULL = { US: "美国 FDA", TW: "台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处", SG: "欧盟 Safety Gate", SFA: "新加坡 食品局", CPSC: "美国 CPSC", AU: "澳大利亚 农业部", CN: "市场监管总局", SZ: "深圳市市场监管局", HK: "香港食物安全中心" };
+  var SRC_NAME = { US: "美国", TW: "中国台湾", JP: "日本", EU: "欧盟", KR: "韩国", SG: "欧盟·非食品", SFA: "新加坡", CPSC: "美国·消费品", AU: "澳大利亚", CN: "中国大陆", SZ: "深圳", HK: "中国香港" };
+  var SRC_FULL = { US: "美国 FDA", TW: "中国台湾 TFDA", JP: "日本 厚生劳动省", EU: "欧盟 RASFF", KR: "韩国 食药处", SG: "欧盟 Safety Gate", SFA: "新加坡 食品局", CPSC: "美国 CPSC", AU: "澳大利亚 农业部", CN: "市场监管总局", SZ: "深圳市市场监管局", HK: "香港食物安全中心" };
   var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文", SG: "Safety Gate 原文", SFA: "食品局原文", CPSC: "CPSC 原文", AU: "澳大利亚原表", CN: "总局通报原文", SZ: "深圳市局原文", HK: "食安中心原文" };
   var SG_IMG = "https://ec.europa.eu/safety-gate-alerts/public/api/notification/";
   var PER = 30;

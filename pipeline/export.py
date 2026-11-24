@@ -8,7 +8,7 @@ from datetime import date
 from . import cn_site, db, firms, images, normalize
 
 SOURCES = {
-    "TW": {"name": "台湾 食品药物管理署 (TFDA)", "url": "https://www.fda.gov.tw/UnsafeFood/UnsafeFood.aspx"},
+    "TW": {"name": "中国台湾 食品药物管理署 (TFDA)", "url": "https://www.fda.gov.tw/UnsafeFood/UnsafeFood.aspx"},
     "US": {"name": "美国 FDA 进口拒收", "url": "https://datadashboard.fda.gov/oii/cd/imprefusals.htm"},
     "JP": {"name": "日本 厚生劳动省 进口食品违反事例",
            "url": "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/shokuhin/yunyu_kanshi/ihan/index.html"},
