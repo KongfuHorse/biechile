@@ -128,9 +128,7 @@ def parse_alert(url, page):
             note.append("香港进口商/分销商：" + trader)
         note += rest[:4]
         note.append("来源地：" + origin)
-        if action:
-            note.append("食安中心行动：" + action.replace("\n", "；"))
-        detail = reason.replace("\n", "；")
+        detail = "；".join(reason.split("\n")[:2])
         slug = url.rsplit("/", 1)[-1].split(".")[0]
         out.append({
             "id": f"HK-FA-{slug}-{i}", "src": "HK", "pub_date": date, "insp_date": None, "grp": "食品",
