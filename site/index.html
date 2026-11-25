@@ -269,7 +269,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
           </div>
           <div class="filters">
             <label class="field" for="f-period">时间
-              <select id="f-period"><option value="12m">最近 12 个月</option></select>
+              <select id="f-period"><option value="all">全部</option></select>
             </label>
             <label class="field" for="f-src">来源
               <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">中国台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option><option value="CPSC">美国 CPSC（消费品）</option><option value="AU">澳大利亚 农业部</option><option value="CN">中国大陆 市场监管总局</option><option value="SZ">深圳市 市场监管局</option><option value="HK">中国香港 食物安全中心</option></select>
@@ -361,7 +361,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
   var SG_IMG = "https://ec.europa.eu/safety-gate-alerts/public/api/notification/";
   var PER = 30;
   var all = [], meta = null, view = [], fuzzy = false, page = 1, tab = "list", firms = [], firmPage = 1, brandPage = 1, cache = {}, range = { from: "", to: "" };
-  var st = { scope: "food", src: "", grp: "", prob: "", q: "", lab: false, period: "12m" };
+  var st = { scope: "food", src: "", grp: "", prob: "", q: "", lab: false, period: "all" };
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -608,7 +608,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
   var CJK_RE = /[\u3400-\u9fff]/;
   function firmKey(f) {
     return f.toUpperCase().replace(/[.,()（）"“”'’]/g, " ").replace(/\bCOMPANY\b/g, "CO").replace(/\bLIMITED\b/g, "LTD")
-      .replace(/\bCORPORATION\b/g, "CORP").replace(/\s+/g, " ").trim();
+      .replace(/\bCORPORATION\b/g, "CORP").replace(/&/g, " AND ").replace(/[\s\-‐–—_\/\\·•+:;!?#*~|]/g, "");
   }
   // freight forwarders and logistics firms: FDA sometimes records the shipper, not the maker
   var NON_PRODUCER = /LOGISTIC|FREIGHT|FORWARDING|\bSHIPPING\b|\bCARGO\b|\bCOURIER\b|\bEXPRESS\b|物流|货运|貨運|货代|貨代|快递|快遞/i;
@@ -618,7 +618,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       if (NO_FIRM[r.src] || !r.f) return;
       r.f.split("；").forEach(function (name) {
         name = name.trim(); var k = firmKey(name);
-        if (!k || /^(UNKNOWN|N ?A|NONE|-)$/.test(k)) return;
+        if (!k || /^(UNKNOWN|NA|NONE)$/.test(k)) return;
         var g = m[k] || (m[k] = { n: 0, names: {}, src: {}, last: "", zh: "", fd: false, probs: {} });
         g.n++; g.names[name] = (g.names[name] || 0) + 1; g.src[r.src] = (g.src[r.src] || 0) + 1;
         if (r.d > g.last) g.last = r.d;
@@ -844,6 +844,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     $("f-period").innerHTML = '<option value="12m">最近 12 个月</option>' +
       Object.keys(meta.years).sort().reverse().map(function (y) { return '<option value="' + y + '">' + y + " 年</option>"; }).join("") +
       '<option value="all">全部（' + meta.from.slice(0, 4) + " 年起）</option>";
+    $("f-period").value = st.period;
     renderSources(); loadPeriod();
   }).catch(function () {
     $("rows").innerHTML = '<tr><td colspan="7" class="empty">数据加载失败。请刷新页面再试。</td></tr>';

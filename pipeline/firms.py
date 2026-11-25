@@ -111,7 +111,8 @@ def firm_key(name):
     s = re.sub(r"\bCOMPANY\b", "CO", s)
     s = re.sub(r"\bLIMITED\b", "LTD", s)
     s = re.sub(r"\bCORPORATION\b", "CORP", s)
-    return re.sub(r"\s+", " ", s).strip()
+    # spaces, hyphens and "&" vary between notices of the same firm ("GUANG DONG"/"GUANGDONG", "M & C"/"M AND C")
+    return re.sub(r"[\s\-‐–—_/\\·•+:;!?#*~|]", "", s.replace("&", " AND "))
 
 
 def _ask(items, model):
