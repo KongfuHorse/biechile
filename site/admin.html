@@ -76,6 +76,9 @@
   .form-grid label { font-size:12px; color:var(--muted); }
   .form-grid input, .form-grid textarea { width:100%; margin-top:2px; }
   .form-grid .wide { grid-column:1 / -1; }
+  .sortbtn { all: unset; cursor: pointer; font: inherit; color: inherit; white-space: nowrap; }
+  .sortbtn:focus-visible { outline: 2px solid var(--accent, #0b5f6b); outline-offset: 2px; }
+  .sortbtn .arrow { margin-left: 2px; }
   .form-grid label.check { color:var(--text, inherit); font-size:13px; }
   .form-grid label.check input { width:auto; margin:0 4px 0 0; vertical-align:middle; }
   .cands { margin:10px 0; padding:8px 10px; border:1px dashed var(--muted); border-radius:8px; background:var(--card); }
@@ -158,7 +161,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>企业（原文）</th><th>上榜</th><th>最近一次</th><th>中文名</th><th>查证</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>企业（原文）</th><th><button type="button" class="sortbtn" data-sort="n" title="按上榜次数排序">上榜<span class="arrow"></span></button></th><th><button type="button" class="sortbtn" data-sort="last" title="按最近一次上榜时间排序">最近一次<span class="arrow"></span></button></th><th>中文名</th><th>查证</th><th></th></tr></thead>
         <tbody id="firmRows"></tbody>
       </table>
     </div>
@@ -243,7 +246,7 @@ function pager(el, page, total, go) {
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
-let token = null, firms = [], terms = [], termTotal = 0, firmPage = 1, termPage = 1, editing = null;
+let token = null, firms = [], terms = [], termTotal = 0, firmPage = 1, termPage = 1, editing = null, firmSort = "n_desc";
 
 function store(k, v) { try { v === undefined ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} }
 function load(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
@@ -318,8 +321,13 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 const SRC_NAME = { US: "美国 FDA", TW: "台湾", JP: "日本", KR: "韩国", AU: "澳大利亚", CPSC: "美国 CPSC" };
 let firmTotal = 0, firmTimer = null;
 async function loadFirms() {
-  const res = await rpc("admin_firms2", { p_token: token, p_status: $("firmStatus").value, p_q: $("firmSearch").value.trim(),
-                                          p_offset: (firmPage - 1) * PAGE, p_limit: PAGE });
+  const res = await rpc("admin_firms3", { p_token: token, p_status: $("firmStatus").value, p_q: $("firmSearch").value.trim(),
+                                          p_offset: (firmPage - 1) * PAGE, p_limit: PAGE, p_sort: firmSort });
+  document.querySelectorAll(".sortbtn").forEach(b => {
+    const on = firmSort.startsWith(b.dataset.sort + "_");
+    b.querySelector(".arrow").textContent = on ? (firmSort.endsWith("_asc") ? "↑" : "↓") : "";
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
   firms = res.items || []; firmTotal = res.total || 0;
   if (!firms.length && firmPage > 1) { firmPage = Math.max(1, Math.ceil(firmTotal / PAGE)); return loadFirms(); }
   renderFirms();
@@ -419,6 +427,11 @@ $("firmSearch").addEventListener("input", () => {
   clearTimeout(firmTimer);
   firmTimer = setTimeout(() => { firmPage = 1; editing = null; loadFirms().catch(err => toast(err.message, true)); }, 350);
 });
+document.querySelectorAll(".sortbtn").forEach(b => b.addEventListener("click", () => {
+  const k = b.dataset.sort;
+  firmSort = firmSort === k + "_desc" ? k + "_asc" : k + "_desc";
+  firmPage = 1; editing = null; loadFirms().catch(err => toast(err.message, true));
+}));
 $("firmStatus").addEventListener("change", () => { firmPage = 1; editing = null; loadFirms().catch(err => toast(err.message, true)); });
 
 // ---------- 翻译核对 ----------

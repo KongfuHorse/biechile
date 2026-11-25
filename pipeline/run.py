@@ -8,6 +8,8 @@ import argparse
 import os
 import sys
 import traceback
+
+import requests
 from datetime import date, timedelta
 
 from . import au, cn_daily, cpsc, db, eu, export, fda_address, firms, hk, images, jp, kr, mt, normalize, sfa, sg, sources
@@ -248,15 +250,15 @@ def main():
             except Exception:
                 db.log_run("IMG", 0, 0, "error", traceback.format_exc())
 
-        # AI Chinese names for the most-notified firms of all sources (admin page only);
-        # a failure here does not fail the run
-        if "firms" not in a.skip:
-            try:
-                n = firms.generate_candidates2(int(os.environ.get("FIRM_AI_LIMIT") or 0))  # off unless a run asks for it
-                if n:
-                    db.log_run("firms", n, n, "ok", "AI candidate names for admin review")
-            except Exception:
-                db.log_run("firms", 0, 0, "error", traceback.format_exc())
+        # AI Chinese names for firms: paused (Nov 2026, not accurate enough). Names already made stay in firm_ai.
+        # firms.generate_candidates2() is kept for a later decision.
+
+        # the admin firm list reads a precomputed copy of firm_all; rebuild it after the records changed
+        try:
+            r = requests.post(f"{db.URL}/rest/v1/rpc/refresh_firm_all", headers=db._h(), json={}, timeout=120)
+            r.raise_for_status()
+        except Exception:
+            db.log_run("firm_list", 0, 0, "error", traceback.format_exc())
 
         new_terms = {k: sorted(v) for k, v in normalize.untranslated.items() if v}
         if new_terms:
