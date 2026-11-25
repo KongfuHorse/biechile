@@ -78,6 +78,13 @@ def apply_intl(r, tt):
 
 def short(r):
     """Short keys keep the files small."""
+    out = _short(r)
+    if r.get("firm_gone"):
+        out["fd"] = 1  # verified firm marked dissolved (注销) in the admin page
+    return out
+
+
+def _short(r):
     return {"id": r["id"], "src": r["src"], "d": r["pub_date"], "grp": r["grp"], "ind": r.get("ind") or "",
             "p": r.get("product") or "", "p0": r.get("product_orig") or "", "prob": r.get("problems") or [],
             "x": r.get("detail") or "", "lim": r.get("legal_limit") or "", "q": r.get("quantity") or "",
@@ -95,7 +102,9 @@ def run(out_dir):
     tt = {(t["kind"], t["source"]): (t["zh"], t["status"])
           for t in db.fetch_table("term_translations", "kind,source,zh,status", "&order=kind,source")}
     firm_zh = {f["fei"]: f["zh_name"] for f in db.fetch_table("firm_names", "fei,zh_name", "&order=fei")}
-    firm_zh2 = {f["firm_key"]: f["zh_name"] for f in db.fetch_table("firm_zh", "firm_key,zh_name", "&order=firm_key")}
+    zh_rows = db.fetch_table("firm_zh", "firm_key,zh_name,dissolved", "&order=firm_key")
+    firm_zh2 = {f["firm_key"]: f["zh_name"] for f in zh_rows}
+    firm_gone = {f["firm_key"] for f in zh_rows if f.get("dissolved")}
     for r in rows:
         raw = r.get("raw") or {}  # local mode returns whole records instead of the JSON-path columns
         for src, k, rk in (("SG", "sgdanger", "danger"), ("SG", "sgdesc", "description"), ("SG", "sgpic", "pictures"),
@@ -109,10 +118,12 @@ def run(out_dir):
     # verified Chinese names by merged English name, for every source
     for r in rows:
         if r.get("firm") and r.get("src") not in ("EU", "SG", "SFA"):
-            zh = [firm_zh2.get(firms.firm_key(x)) for x in r["firm"].split("；")]
-            zh = "；".join(dict.fromkeys(z for z in zh if z))
+            keys = [firms.firm_key(x) for x in r["firm"].split("；")]
+            zh = "；".join(dict.fromkeys(firm_zh2[k] for k in keys if firm_zh2.get(k)))
             if zh:
                 r["firm_zh"] = zh
+            if any(k in firm_gone for k in keys):
+                r["firm_gone"] = True
     for r in rows:
         if r.get("src") == "SG":
             r["im"] = ["sg:" + str(i) for i in (r.get("sgpic") or [])][:6]
