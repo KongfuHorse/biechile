@@ -63,3 +63,7 @@ create table if not exists firm_address (fei text primary key, address_en text n
 alter table firm_address enable row level security;
 grant select, insert, update, delete on firm_address to service_role;
 -- admin_firms2 now also returns zh_address, dissolved, fda_address; admin_save_firm3 saves the new fields.
+
+-- Admin firm list (Nov 2026): precomputed copy of firm_all, rebuilt by the daily run (refresh_firm_all);
+-- admin_firms3 reads it and can sort by count or last date (p_sort: n_desc, n_asc, last_desc, last_asc).
+-- See migration firm_all_cache_and_sort.
