@@ -333,7 +333,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <li>深圳的记录来自深圳市市场监督管理局的食品安全抽检通告和产品质量监督抽查通告，只收不合格批次。产品质量抽查的附件只写"不合格"，不写具体项目，网站上列出的是通告正文中该类产品的不合格项目。</li>
         <li>香港的记录来自香港食物安全中心的食物警报和违规样本检测结果，只收来源地写明为中国内地的产品。没有写来源地的样本（多数是街市和食肆抽取的蔬果、熟食）不收录。</li>
         <li>条数多不等于问题率高。中国的出口量很大，不合格率需要结合进口总批数来看。</li>
-        <li>FDA 只公布企业英文名。中文名只在人工核实（对照工商登记信息）后显示，标"已核实"；核实时发现已经注销的企业，另标"已注销"。</li>
+        <li>FDA 只公布企业英文名。中文名只在人工核实（对照工商登记信息）后显示；核实时发现已经注销的企业，另标"已注销"。</li>
         <li>FDA 产品名称和拒收原因由我们翻译成中文。新出现的名称先用 AI 自动翻译，标有"机翻"，人工核对后去掉标记。日本、欧盟、韩国的内容也是 AI 翻译，问题类型由 AI 归类。一切以官方原文为准。</li>
         <li>左侧色条：红色是健康风险类（农药、兽药残留，污染物，微生物）；橙色是添加剂、材质、卫生生产类；灰色是标签、手续类。</li>
       </ul>
@@ -728,7 +728,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       else if (r.act) det += '<div class="small">处理：' + esc(r.act) + "</div>";
       if (r.o) det += '<div class="small">' + esc(r.o) + "</div>";
       var firm = (r.src === "SG" || r.src === "SFA") ? (r.f ? '<span class="small">品牌：</span>' + esc(r.f) : '<span class="small">品牌未公开</span>') :
-        (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">中文名：' + esc(r.fz) + "（已核实）" + (r.fd ? '<span class="gone">已注销</span>' : "") + "</div>" : "") +
+        (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">' + esc(r.fz) + (r.fd ? '<span class="gone">已注销</span>' : "") + "</div>" : "") +
         (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
       var link = LINK[r.src] || "原文";

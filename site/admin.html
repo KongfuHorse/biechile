@@ -115,6 +115,7 @@
     <h1 class="logo">bie<b>chile</b><small>后台</small></h1>
     <div class="right">
       <a href="./" target="_blank" rel="noopener">打开网站</a>
+      <button type="button" id="refreshSite" title="把刚核实的数据马上发布到网站，约 3 分钟生效">刷新网站数据</button>
       <button type="button" id="pwToggle">修改密码</button>
       <button type="button" id="logoutBtn">退出</button>
     </div>
@@ -138,12 +139,12 @@
   <!-- 企业中文名 -->
   <section id="tab-firms" class="card">
     <div class="help">
-      各国通报大多只给企业英文名。这里只填<b>人工核实过</b>的中文全称，网站上会显示为"中文名（已核实）"，用中文名或英文名都能搜到这家企业在所有来源里的记录。
+      各国通报大多只给企业英文名。这里只填<b>人工核实过</b>的中文全称，网站上会在英文名下面显示这个中文名，用中文名或英文名都能搜到这家企业在所有来源里的记录。
       <ul>
-        <li>企业按英文名归并（不分大小写、标点，CO./COMPANY 这类写法算同一家），和网站"企业上榜次数"一致。</li>
+        <li>企业按英文名归并（不分大小写、标点、空格、连字符，&amp;/AND、CO./COMPANY 这类写法算同一家），和网站"企业上榜次数"一致。</li>
         <li>"AI 认识"：AI 表示它知道这家真实企业的中文名，可以点"采用"填进表单，但仍要你查证后再保存。"AI 推测"：按拼音和地名猜的，只能当检索关键词。</li>
         <li>保存时至少要填统一社会信用代码或来源或官网，方便以后查证。</li>
-        <li>保存后，网站会在下一次每日更新（每天早上 6:23，纽约时间）后显示。</li>
+        <li>保存后，网站会在下一次每日更新（每天早上 6:23，纽约时间）后显示；想马上显示，点右上角"刷新网站数据"，约 3 分钟生效。</li>
       </ul>
     </div>
     <div class="bar">
@@ -296,6 +297,28 @@ async function enterApp() {
   await Promise.all([loadFirms(), loadTerms()]);
   $("login").classList.add("hidden"); $("app").classList.remove("hidden");
 }
+
+// ---------- 刷新网站数据 ----------
+$("refreshSite").addEventListener("click", async () => {
+  const b = $("refreshSite");
+  b.disabled = true;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/admin-refresh`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `刷新失败（${r.status}）`);
+    toast("已提交，网站约 3 分钟后更新");
+    b.textContent = "更新中…";
+    setTimeout(() => { b.disabled = false; b.textContent = "刷新网站数据"; }, 180000);
+  } catch (err) {
+    b.disabled = false;
+    if (/登录已过期/.test(err.message)) showLogin("登录已过期，请重新登录");
+    toast(err.message, true);
+  }
+});
 
 // ---------- 修改密码 ----------
 $("pwToggle").addEventListener("click", () => $("pwBox").classList.toggle("hidden"));

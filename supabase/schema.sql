@@ -67,3 +67,7 @@ grant select, insert, update, delete on firm_address to service_role;
 -- Admin firm list (Nov 2026): precomputed copy of firm_all, rebuilt by the daily run (refresh_firm_all);
 -- admin_firms3 reads it and can sort by count or last date (p_sort: n_desc, n_asc, last_desc, last_asc).
 -- See migration firm_all_cache_and_sort.
+
+-- Admin "刷新网站数据" button (Nov 2026): edge function admin-refresh (supabase/functions/admin-refresh)
+-- checks the login through admin_request_refresh (one request per 2 minutes, logged in admin_refresh_log)
+-- and starts workflow update.yml with export_only=yes. Needs edge function secret GITHUB_DISPATCH_TOKEN.
