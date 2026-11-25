@@ -15,10 +15,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m pipeline.preview_sources out cn
+      - run: python -m pipeline.fda_address 2020-01-01 && mkdir -p out && echo ok > out/done.txt
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          FDA_USER: ${{ secrets.FDA_USER }}
+          FDA_KEY: ${{ secrets.FDA_KEY }}
       - uses: actions/upload-artifact@v4
         with:
           name: preview

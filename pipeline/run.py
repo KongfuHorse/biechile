@@ -10,7 +10,7 @@ import sys
 import traceback
 from datetime import date, timedelta
 
-from . import au, cn_daily, cpsc, db, eu, export, firms, hk, images, jp, kr, mt, normalize, sfa, sg, sources
+from . import au, cn_daily, cpsc, db, eu, export, fda_address, firms, hk, images, jp, kr, mt, normalize, sfa, sg, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
 
@@ -192,6 +192,10 @@ def main():
                     note += f" machine_translated={done}"
                     recs = [normalize.normalize_fda(r) for r in raw]
                 n = db.upsert(recs)
+                try:
+                    note += f" addresses={fda_address.save(raw)}"
+                except Exception as e:  # addresses only help the admin page; never fail the run for them
+                    note += f" addresses_failed={str(e)[:80]}"
                 db.log_run("US", len(raw), n, "ok", note)
             except Exception:
                 failed = True

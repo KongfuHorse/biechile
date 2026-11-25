@@ -76,6 +76,8 @@
   .form-grid label { font-size:12px; color:var(--muted); }
   .form-grid input, .form-grid textarea { width:100%; margin-top:2px; }
   .form-grid .wide { grid-column:1 / -1; }
+  .form-grid label.check { color:var(--text, inherit); font-size:13px; }
+  .form-grid label.check input { width:auto; margin:0 4px 0 0; vertical-align:middle; }
   .cands { margin:10px 0; padding:8px 10px; border:1px dashed var(--muted); border-radius:8px; background:var(--card); }
   .cands b { font-weight:500; }
   .cands .warn { color:var(--bad); font-size:12px; }
@@ -137,7 +139,7 @@
       <ul>
         <li>企业按英文名归并（不分大小写、标点，CO./COMPANY 这类写法算同一家），和网站"企业上榜次数"一致。</li>
         <li>"AI 认识"：AI 表示它知道这家真实企业的中文名，可以点"采用"填进表单，但仍要你查证后再保存。"AI 推测"：按拼音和地名猜的，只能当检索关键词。</li>
-        <li>保存时至少要填统一社会信用代码或来源链接，方便以后查证。</li>
+        <li>保存时至少要填统一社会信用代码或来源或官网，方便以后查证。</li>
         <li>保存后，网站会在下一次每日更新（每天早上 6:23，纽约时间）后显示。</li>
       </ul>
     </div>
@@ -347,7 +349,7 @@ function renderFirms() {
   $("firmRows").innerHTML = firms.map((f, i) => {
     const rank = (firmPage - 1) * PAGE + i + 1;
     const zh = f.zh_name
-      ? `<span class="tag ok">已核实</span> ${esc(f.zh_name)}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
+      ? `<span class="tag ok">已核实</span>${f.dissolved ? ' <span class="tag none">已注销</span>' : ""} ${esc(f.zh_name)}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
       : `<span class="tag none">未核实</span>${aiSummary(f)}`;
     const srcs = (f.sources || []).map(s => SRC_NAME[s] || s).join("、");
     let row = `<tr data-key="${esc(f.firm_key)}">
@@ -370,7 +372,7 @@ function editorRow(f) {
       c.map(x => `<div style="margin:3px 0">${x.basis === "known" ? '<span class="tag ok">AI 认识</span>' : '<span class="tag none">AI 推测</span>'}
         <b>${esc(x.name)}</b> <span class="small muted">${esc(x.reason || "")}</span> ${candLinks(x.name)}
         ${x.basis === "known" ? `<button type="button" class="small" data-use="${esc(x.name)}">采用</button>` : ""}</div>`).join("") +
-      `<div class="warn" style="margin-top:4px">AI 的结果都要查证：在企查查、天眼查或信用公示系统里核对地址和经营范围，再填信用代码或来源链接。</div></div>`
+      `<div class="warn" style="margin-top:4px">AI 的结果都要查证：在企查查、天眼查或信用公示系统里核对地址和经营范围，再填信用代码或来源或官网。</div></div>`
     : `<div class="cands small muted">还没有 AI 结果（每日任务会按上榜次数从多到少逐步生成）。</div>`;
   const id = s => `ed-${s}`;
   return `<tr class="editor"><td></td><td colspan="6">
@@ -378,8 +380,11 @@ function editorRow(f) {
     <form class="form-grid" data-save="${esc(f.firm_key)}">
       <label for="${id("zh")}">中文全称（核实过的）<input id="${id("zh")}" name="zh" value="${esc(f.zh_name || "")}" required></label>
       <label for="${id("code")}">统一社会信用代码<input id="${id("code")}" name="code" value="${esc(f.credit_code || "")}" maxlength="18"></label>
-      <label class="wide" for="${id("url")}">来源链接<input id="${id("url")}" name="url" type="url" value="${esc(f.source_url || "")}" placeholder="https://..."></label>
-      <label class="wide" for="${id("note")}">备注（怎么核实的）<textarea id="${id("note")}" name="note" rows="2">${esc(f.note || "")}</textarea></label>
+      <label class="wide" for="${id("addr")}">中文地址<input id="${id("addr")}" name="addr" value="${esc(f.zh_address || "")}">
+        ${f.fda_address ? `<span class="small muted" style="font-weight:normal">FDA 档案地址：${esc(f.fda_address)}</span>` : ""}</label>
+      <label class="wide" for="${id("url")}">来源或官网<input id="${id("url")}" name="url" type="url" value="${esc(f.source_url || "")}" placeholder="https://..."></label>
+      <label class="wide" for="${id("note")}">备注<textarea id="${id("note")}" name="note" rows="2">${esc(f.note || "")}</textarea></label>
+      <label class="wide check" for="${id("gone")}"><input id="${id("gone")}" name="gone" type="checkbox"${f.dissolved ? " checked" : ""}> 已注销</label>
       <div class="actions wide">
         <button type="submit" class="primary">保存为已核实</button>
         <button type="button" data-cancel>取消</button>
@@ -404,8 +409,9 @@ $("firmRows").addEventListener("submit", async e => {
   e.preventDefault();
   const f = firms.find(x => x.firm_key === form.dataset.save), d = new FormData(form);
   try {
-    await rpc("admin_save_firm2", { p_token: token, p_key: f.firm_key, p_firm_en: f.firm_en, p_zh: d.get("zh"),
-      p_credit_code: d.get("code"), p_source_url: d.get("url"), p_note: d.get("note") });
+    await rpc("admin_save_firm3", { p_token: token, p_key: f.firm_key, p_firm_en: f.firm_en, p_zh: d.get("zh"),
+      p_zh_address: d.get("addr"), p_credit_code: d.get("code"), p_source_url: d.get("url"), p_note: d.get("note"),
+      p_dissolved: d.get("gone") === "on" });
     editing = null; await loadFirms(); toast("已保存");
   } catch (err) { toast(err.message, true); }
 });

@@ -55,3 +55,11 @@ grant usage, select on sequence public.runs_id_seq to service_role;
 -- added for Japan, EU and Korea sources
 alter table records add column if not exists ntype text;   -- notification type (EU), e.g. 边境拒绝
 alter table records add column if not exists note text;    -- extra info: notifying country, risk, inspection office
+
+-- Firm review (Nov 2026): Chinese address and a dissolved flag on verified firms; FDA English addresses by FEI.
+alter table firm_zh add column if not exists zh_address text;
+alter table firm_zh add column if not exists dissolved boolean not null default false;
+create table if not exists firm_address (fei text primary key, address_en text not null, updated_at timestamptz not null default now());
+alter table firm_address enable row level security;
+grant select, insert, update, delete on firm_address to service_role;
+-- admin_firms2 now also returns zh_address, dissolved, fda_address; admin_save_firm3 saves the new fields.

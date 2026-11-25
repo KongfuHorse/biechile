@@ -73,7 +73,8 @@ def fetch_tw(since, stop_id=0, delay=0.5, max_misses=200, start_id=None):
 FDA_URL = "https://api-datadashboard.fda.gov/v1/import_refusals"
 FDA_COLS = ["RefusalDate", "CountryName", "FirmName", "FEINumber", "City", "IndustryCodeDescription",
             "ProductCode", "ProductCodeDescription", "RefusalCharges", "FDASampleAnalysis",
-            "PrivateLabAnalysis", "ShipmentID", "FirmProfile"]
+            "PrivateLabAnalysis", "ShipmentID", "FirmProfile",
+            "AddressLine1", "AddressLine2", "State", "ZipCode"]
 
 
 def fetch_fda(since, country="China"):
