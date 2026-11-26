@@ -79,6 +79,9 @@ def apply_intl(r, tt):
 def short(r):
     """Short keys keep the files small."""
     out = _short(r)
+    if r.get("src") == "US":
+        yes = lambda v: (v or "").strip() == "Yes"
+        out["la"] = [1 if yes(r.get("fdalab")) else 0, 1 if yes(r.get("privlab")) else 0]  # FDA sample (per entry), importer's lab
     if r.get("firm_gone"):
         out["fd"] = 1  # verified firm marked dissolved (注销) in the admin page
     return out
@@ -97,7 +100,7 @@ def _short(r):
 
 def run(out_dir):
     cols = "id,src,pub_date,grp,ind,product,product_orig,problems,detail,legal_limit,quantity,firm,importer,lab_tested,entry_no,action,url,machine_translated"
-    cols += ",ntype,note,fei:raw->>FEINumber,ind0:raw->>IndustryCodeDescription,vio:raw->>violation,subj:raw->summary->>subject,sgdanger:raw->>danger,sgdesc:raw->>description,sgpic:raw->pictures,cpscd:raw->>_detail_src,cpscimg:raw->Images,aur:raw->>reason"
+    cols += ",ntype,note,fdalab:raw->>FDASampleAnalysis,privlab:raw->>PrivateLabAnalysis,fei:raw->>FEINumber,ind0:raw->>IndustryCodeDescription,vio:raw->>violation,subj:raw->summary->>subject,sgdanger:raw->>danger,sgdesc:raw->>description,sgpic:raw->pictures,cpscd:raw->>_detail_src,cpscimg:raw->Images,aur:raw->>reason"
     rows = db.fetch_all(cols)
     tt = {(t["kind"], t["source"]): (t["zh"], t["status"])
           for t in db.fetch_table("term_translations", "kind,source,zh,status", "&order=kind,source")}
@@ -108,7 +111,8 @@ def run(out_dir):
     for r in rows:
         raw = r.get("raw") or {}  # local mode returns whole records instead of the JSON-path columns
         for src, k, rk in (("SG", "sgdanger", "danger"), ("SG", "sgdesc", "description"), ("SG", "sgpic", "pictures"),
-                           ("CPSC", "cpscd", "_detail_src"), ("CPSC", "cpscimg", "Images"), ("AU", "aur", "reason")):
+                           ("CPSC", "cpscd", "_detail_src"), ("CPSC", "cpscimg", "Images"), ("AU", "aur", "reason"),
+                           ("US", "fdalab", "FDASampleAnalysis"), ("US", "privlab", "PrivateLabAnalysis")):
             if r.get(k) is None and r.get("src") == src:
                 r[k] = raw.get(rk)
         if r.get("src") == "SG":
