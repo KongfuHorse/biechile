@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m pipeline.holds --dry-jpkr && mkdir -p out && mv holds_jpkr.json kr_raw.html out/
+      - run: python -m pipeline.fda_address 2020-01-01 && mkdir -p out && echo ok > out/done.txt
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
