@@ -160,6 +160,113 @@ def au_rows():
     return out
 
 
+# ---------- Japan: MHLW inspection orders that name Chinese manufacturers ----------
+
+JP_INDEX = "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/shokuhin/yunyu_kanshi/kanshi/index.html"
+JP_TABLES = {  # tables of the yearly inspection-order notice that list named manufacturers
+    "cyclamate": (r"中国産食品（サイクラミン酸）検査命令対象製造者", "检出甜蜜素"),
+    "aflatoxin": (r"食品（(?:総)?アフラトキシン）検査命令対象製造者", "检出黄曲霉毒素"),
+}
+JP_WORDS = [("ピスタチオナッツ", "开心果"), ("赤とうがらし", "红辣椒"), ("ごまの種子", "芝麻"), ("落花生", "花生"),
+            ("アーモンド", "杏仁"), ("ラカンカ", "罗汉果"), ("くるみ", "核桃"), ("とうもろこし", "玉米"),
+            ("ターメリック", "姜黄"), ("ひよこ豆", "鹰嘴豆"), ("うるち米", "大米"), ("ナツメグ", "肉豆蔻"),
+            ("くり", "栗子"), ("花椒", "花椒"), ("大豆", "大豆"), ("乾燥", "干"), ("又は", "或"), ("（甘味種を除く。）", "（甜玉米除外）")]
+
+
+def _jp_item(item):
+    """'落花生を含む食品' -> '含花生的食品'"""
+    m = re.fullmatch(r"(.+)を含む食品", item)
+    if not m:
+        return item
+    x = m.group(1)
+    for ja, zh in JP_WORDS:
+        x = x.replace(ja, zh)
+    return "含" + x + "的食品"
+
+
+def _pdf_rows(data):
+    import io
+    import pdfplumber
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        tables = [r for pg in pdf.pages for t in pg.extract_tables() for r in t]
+        text = "\n".join(pg.extract_text() or "" for pg in pdf.pages)
+    return tables, text
+
+
+def jp_fetch():
+    """Current entries, and whether every table was read."""
+    idx = _get(JP_INDEX)
+    year = next(h for h, t in re.findall(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', idx, re.S) if "検査命令実施通知" in t)
+    year = year if year.startswith("http") else "https://www.mhlw.go.jp" + year
+    ypage = _get(year)
+    base = next(h for h, t in re.findall(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', ypage, re.S) if "第26条第3項に基づく検査命令の実施について" in _txt(t))
+    page = re.sub(r"\s+", " ", _get(base))
+    dates = _ref("jp_hold_dates.json")
+    out, found = [], 0
+    for key, (pat, reason) in JP_TABLES.items():
+        m = re.search(pat + r'[^<]*<a[^>]+href="([^"]+\.pdf)"', page) or re.search(pat + r'.{0,40}?\(\s*<a[^>]+href="([^"]+\.pdf)"', page)
+        if not m:
+            print("Japan table not found:", key)
+            continue
+        url = "https://www.mhlw.go.jp" + m.group(1) if m.group(1).startswith("/") else m.group(1)
+        r = requests.get(url, headers=UA, timeout=90)
+        r.raise_for_status()
+        tables, text = _pdf_rows(r.content)
+        rows = []
+        if key == "cyclamate":
+            for ln in text.split("\n"):
+                ln = re.sub(r"^[A-Z]\s+", "", ln.strip())
+                if re.search(r"(CO\.|LTD|LIMITED|COMPANY|CORP)", ln, re.I):
+                    rows.append((ln, "所有食品"))
+        else:
+            country = None
+            item = None
+            for row in tables:
+                row = [(c or "").replace("\n", "") for c in row] + ["", "", ""]
+                if row[0] == "対象国":
+                    continue
+                country = row[0] or country
+                item = row[1] or item
+                if country == "中国" and row[2]:
+                    rows.append((row[2].strip(), _jp_item(item or "")))
+        if rows:
+            found += 1
+        for firm, prod in rows:
+            k = firm_key(firm)
+            out.append({"src": "JP", "ref": key, "firm": firm, "firm_key": k, "address": "",
+                        "products": [{"product": prod}], "products_zh": [prod], "groups": ["食品"],
+                        "reason": reason, "listed_on": dates.get(k), "url": url})
+    return _merge(out), found == len(JP_TABLES)
+
+
+# ---------- Korea: MFDS overseas manufacturers whose imports are suspended ----------
+
+KR_LIST = ("https://impfood.mfds.go.kr/CFCCC01F08/getList2?page={page}&limit=100&active2=active&srchBsshCode=&srchEstCd="
+           "&srchBsshTy=ovsmnfst&srchBsshSttus=END&srchNtnCd=CN&srchBsshNm=&srchBsshAddr=&srchFoodSeCd=")
+KR_PAGE = "https://impfood.mfds.go.kr/CFCCC01F08"
+
+
+def kr_fetch():
+    """Current list, and whether it was read to the end (the last page has fewer than 100 rows)."""
+    out, page, complete = [], 1, False
+    while page <= 20:
+        s = re.sub(r"<!--.*?-->", "", _get(KR_LIST.format(page=page)), flags=re.S)
+        s = re.sub(r'<strong class="td-title"[^>]*>.*?</strong>', "", s, flags=re.S)
+        tb = "".join(re.findall(r"<tbody.*?</tbody>", s, re.S))
+        rows = [[_txt(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)] for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb, re.S)]
+        rows = [r for r in rows if len(r) >= 8 and re.match(r"[A-Z]{2}\d+", r[1])]
+        for r in rows:
+            # 번호 업소코드 업소분류 국가 업소명 구분 기준일 중단시작일 해제일 비고
+            out.append({"src": "KR", "ref": r[1], "firm": r[4], "firm_key": firm_key(r[4]), "address": "",
+                        "products": [], "products_zh": [], "groups": ["食品"], "reason": "暂停进口",
+                        "listed_on": r[7] if re.fullmatch(r"\d{4}-\d\d-\d\d", r[7]) else None, "url": KR_PAGE})
+        if len(rows) < 100:
+            complete = True
+            break
+        page += 1
+    return out, complete
+
+
 # ---------- database ----------
 
 def _rest(path, method="GET", **kw):
@@ -210,10 +317,21 @@ def run():
     complete = n > 0 and ok == n and len(entries) >= 0.8 * len(before)
     sync("US", entries, removals_ok=complete)
     sync("AU", au_rows(), removals_ok=False)  # AU removals come from the revocation dates in the file
+    for src, fetch in (("JP", jp_fetch), ("KR", kr_fetch)):
+        try:
+            rows, ok = fetch()
+            sync(src, rows, removals_ok=ok and len(rows) > 0)
+        except Exception as e:
+            print(f"holds {src} failed:", e)
 
 
 if __name__ == "__main__":
-    if "--dry" in sys.argv:
+    if "--dry-jpkr" in sys.argv:
+        jp, jok = jp_fetch()
+        kr, kok = kr_fetch()
+        json.dump({"jp": jp, "kr": kr, "jp_ok": jok, "kr_ok": kok}, open("holds_jpkr.json", "w"), ensure_ascii=False)
+        print("JP", len(jp), jok, "KR", len(kr), kok)
+    elif "--dry" in sys.argv:
         e, ok, n = fda_fetch()
         fda_describe(e)
         json.dump({"fda": e, "au": au_rows(), "pages_ok": ok, "pages": n}, open("holds.json", "w"), ensure_ascii=False)
@@ -235,7 +353,8 @@ def site_rows(entries, zh=None):
         g["g"] += [x for x in e["groups"] if x not in g["g"]]
         g["p"] += [x for x in e["products_zh"] if x not in g["p"]]
         # link kept short: the alert page id (US) or the instrument file name (AU)
-        g["r"].append([e["reason"], e["ref"], e["url"].rsplit("_" if e["src"] == "US" else "/", 1)[-1].replace(".html", "")])
+        link = {"US": lambda u: u.rsplit("_", 1)[-1].replace(".html", ""), "KR": lambda u: ""}.get(e["src"], lambda u: u.rsplit("/", 1)[-1])
+        g["r"].append([e["reason"], e["ref"], link(e["url"])])
         d = e.get("listed_on")
         if d and (g["d"] is None or d < g["d"]):
             g["d"], g["dm"] = d, 1 if e.get("listed_month_only") else 0
