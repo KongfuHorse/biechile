@@ -99,6 +99,12 @@ def records(url, page, title, first_direct):
         date = _date(d.get("date"), ym)
         if not date or (first_direct and date >= first_direct):
             continue
+        cat_words = r"^(加工食品|农林产品|水产品|畜产品|健康功能食品|器具及容器包装|器具容器包装|食品添加剂|保健功能食品)$"
+        for k in ("product", "cat"):
+            if d.get(k):
+                d[k] = re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "", d[k])  # "加工 食品"
+        if re.match(cat_words, d.get("product") or "") and not re.match(cat_words, d.get("cat") or ""):
+            d["product"], d["cat"] = d.get("cat") or "", d["product"]  # a few tables swap the two columns
         viol = d.get("viol") or ""
         firm = d.get("firm") or ""
         letters = [c for c in firm if c.isalpha() and c.isascii()]
