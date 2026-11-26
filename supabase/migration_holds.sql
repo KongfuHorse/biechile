@@ -19,3 +19,4 @@ create table if not exists holds (
 );
 create index if not exists holds_active on holds (src) where removed_on is null;
 alter table holds enable row level security;  -- service role only; the site reads the exported JSON
+grant select, insert, update, delete on holds to service_role;  -- new tables here get no default grants
