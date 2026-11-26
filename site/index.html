@@ -119,6 +119,13 @@ td.num { font-weight: 700; font-variant-numeric: tabular-nums; }
 .todo { color: var(--muted); }
 .gone { display: inline-block; margin-left: 4px; padding: 0 5px; font-size: 11px; line-height: 16px; color: var(--muted); border: 1px solid var(--muted); border-radius: 3px; }
 .pill.np { color: var(--muted); border: 1px dashed var(--line); margin-left: 6px; }
+.hold { display: inline-block; margin: 2px 4px 0 0; padding: 0 5px; font-size: 11px; line-height: 16px; color: var(--crit); border: 1px solid var(--crit); border-radius: 3px; white-space: nowrap; }
+.firm .hold:first-of-type { margin-left: 4px; }
+.controls.holds-mode .rec-only { display: none; }
+.controls:not(.holds-mode) .hold-only { display: none; }
+td.reasons div + div { margin-top: 2px; }
+#hold-box .todo { white-space: nowrap; }
+#hold-box td:nth-child(6) { white-space: nowrap; }
 /* records card (design A): tabs, filters and table in one card */
 .list-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .tabbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 4px 16px; flex-wrap: wrap; padding: 0 20px; border-bottom: 1px solid var(--line); }
@@ -258,6 +265,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
             <button type="button" data-tab="list" aria-pressed="true">全部通报</button>
             <button type="button" data-tab="firms" aria-pressed="false">企业上榜次数</button>
             <button type="button" data-tab="brands" aria-pressed="false">品牌上榜次数</button>
+            <button type="button" data-tab="holds" aria-pressed="false">进口扣留名单</button>
           </div>
           <span class="count" id="count"></span>
         </div>
@@ -268,22 +276,25 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
             <button type="button" data-scope="all" aria-pressed="false">全部</button>
           </div>
           <div class="filters">
-            <label class="field" for="f-period">时间
+            <label class="field rec-only" for="f-period">时间
               <select id="f-period"><option value="all">全部</option></select>
             </label>
-            <label class="field" for="f-src">来源
+            <label class="field rec-only" for="f-src">来源
               <select id="f-src"><option value="">全部</option><option value="US">美国 FDA</option><option value="TW">中国台湾 TFDA</option><option value="JP">日本 厚生劳动省</option><option value="EU">欧盟 RASFF</option><option value="KR">韩国 食药处</option><option value="SG">欧盟 Safety Gate（非食品）</option><option value="SFA">新加坡 食品局</option><option value="CPSC">美国 CPSC（消费品）</option><option value="AU">澳大利亚 农业部</option><option value="CN">中国大陆 市场监管总局</option><option value="SZ">深圳市 市场监管局</option><option value="HK">中国香港 食物安全中心</option></select>
             </label>
-            <label class="field" for="f-grp">类别
+            <label class="field rec-only" for="f-grp">类别
               <select id="f-grp"></select>
             </label>
-            <label class="field" for="f-prob">问题
+            <label class="field rec-only" for="f-prob">问题
               <select id="f-prob"></select>
             </label>
             <label class="field" for="f-q">搜索
               <input type="search" id="f-q" placeholder="产品、企业、原因，多个词用空格隔开">
             </label>
-            <label class="check" for="f-lab"><input type="checkbox" id="f-lab"> 只看有实验室检测</label>
+            <label class="field hold-only" for="f-hold">国家
+              <select id="f-hold"><option value="">全部</option><option value="US">美国 FDA</option><option value="AU">澳大利亚</option></select>
+            </label>
+            <label class="check rec-only" for="f-lab"><input type="checkbox" id="f-lab"> 只看有实验室检测</label>
             <button type="button" class="link-btn" id="reset">清除筛选</button>
           </div>
         </div>
@@ -299,6 +310,12 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
           <tbody id="firm-rows"></tbody>
         </table>
       </div>
+      <div class="table-box" id="hold-box" hidden>
+        <table>
+          <thead><tr><th>国家</th><th>企业</th><th>中文名</th><th>产品</th><th>扣留原因</th><th>列入日期</th><th>原文</th></tr></thead>
+          <tbody id="hold-rows"><tr><td colspan="7" class="empty">正在加载名单…</td></tr></tbody>
+        </table>
+      </div>
       <div class="table-box" id="brand-box" hidden>
         <table>
           <thead><tr><th>排名</th><th>品牌</th><th>上榜次数</th><th>通报来源</th><th>最近一次</th><th>产品类别</th><th>主要问题</th></tr></thead>
@@ -307,6 +324,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       </div>
       </div>
       <p class="small" id="brand-note" style="margin:8px 2px 0" hidden>按当前筛选条件统计，一条通报算一次，品牌名不分大小写。品牌只有欧盟 Safety Gate（非食品）和新加坡食品局提供，未注明品牌的不计入。有些“品牌”其实是零售商或平台名称，照原文列出。</p>
+      <p class="small" id="hold-note" style="margin:8px 2px 0" hidden>这里列出的是目前仍在名单上的中国企业，企业被移出名单后不再显示。美国 FDA 进口警报“红名单”上的企业，货物到港后不经检验直接扣留，企业要向 FDA 证明问题已解决（通常要连续 5 批合格）才能移出；本站每天核对一次。澳大利亚农业部对检验不合格的产品发出扣留令，同一生产商的同类产品此后到港都要先扣下检验，连续 5 批合格后撤销；官网只保留 2024 年以来的扣留令，本站每月核对一次。“2009 年以前”表示 FDA 在 2009 年换系统前就已列入，原始日期没有显示。产品类别按 FDA 产品代码归类，部分企业被列入的是整个类别。</p>
       <p class="small" id="firm-note" style="margin:8px 2px 0" hidden>按当前筛选条件统计，一条通报算一次。英文名按大小写、标点和 CO./COMPANY 这类写法归并。欧盟 RASFF 不公开企业名，欧盟 Safety Gate 和新加坡食品局只给品牌，这三个来源不计入。中文名由人工逐个核实，未核实的显示“待核实”。“非生产企业”是按名称识别的货代、物流公司，美国 FDA 记录的有时是发货方而不是生产商。</p>
       <div class="pager" style="margin-top:12px">
         <button type="button" id="prev">上一页</button>
@@ -360,7 +378,10 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
   var LINK = { US: "FDA 企业档案", TW: "TFDA 原文", JP: "厚生劳动省原表", EU: "RASFF 原文", KR: "食药处原文", SG: "Safety Gate 原文", SFA: "食品局原文", CPSC: "CPSC 原文", AU: "澳大利亚原表", CN: "总局通报原文", SZ: "深圳市局原文", HK: "食安中心原文" };
   var SG_IMG = "https://ec.europa.eu/safety-gate-alerts/public/api/notification/";
   var PER = 30;
-  var all = [], meta = null, view = [], fuzzy = false, page = 1, tab = "list", firms = [], firmPage = 1, brandPage = 1, cache = {}, range = { from: "", to: "" };
+  var all = [], meta = null, view = [], fuzzy = false, page = 1, tab = "list", firms = [], firmPage = 1, brandPage = 1, holdPage = 1, cache = {}, range = { from: "", to: "" };
+  var holds = null, holdKey = {}, holdSrc = "";
+  var HOLD_TAG = { US: "FDA 自动扣留中", AU: "澳大利亚扣留令中" };
+  var HOLD_URL = { US: function (x) { return "https://www.accessdata.fda.gov/cms_ia/importalert_" + x + ".html"; }, AU: function (x) { return "https://www.agriculture.gov.au/sites/default/files/documents/" + x; } };
   var st = { scope: "food", src: "", grp: "", prob: "", q: "", lab: false, period: "all" };
 
   function $(id) { return document.getElementById(id); }
@@ -500,7 +521,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     var res = Search.run(filtered, st.q);
     view = res.rows; fuzzy = res.fuzzy && view.length > 0;
     page = 1;
-    renderTiles(); renderMonth(); renderProb(); firmPage = 1; brandPage = 1; renderList();
+    renderTiles(); renderMonth(); renderProb(); firmPage = 1; brandPage = 1; holdPage = 1; renderList();
   }
 
   function renderTiles() {
@@ -646,7 +667,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       if (g.fd) zh += '<span class="gone">已注销</span>';
       return "<tr>" +
         '<td class="rank" data-k="排名">' + (start + i + 1) + "</td>" +
-        '<td class="firm" data-k="企业">' + esc(g.name) + (NON_PRODUCER.test(g.name) ? '<span class="pill np" title="按名称识别的货代或物流公司">非生产企业</span>' : "") + "</td>" +
+        '<td class="firm" data-k="企业">' + esc(g.name) + (NON_PRODUCER.test(g.name) ? '<span class="pill np" title="按名称识别的货代或物流公司">非生产企业</span>' : "") + holdTags(g.name) + "</td>" +
         '<td data-k="中文名">' + zh + "</td>" +
         '<td class="num" data-k="上榜次数">' + fmt(g.n) + "</td>" +
         '<td data-k="通报来源"><div class="pills">' + g.src.map(function (s) { return '<span class="pill ' + s.toLowerCase() + '">' + (SRC_NAME[s] || s) + "</span>"; }).join("") + "</div></td>" +
@@ -699,12 +720,65 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         '<td data-k="主要问题"><div class="pills">' + probPills(g.probs) + "</div></td></tr>";
     }).join("");
   }
-  function renderList() { if (tab === "firms") renderFirms(); else if (tab === "brands") renderBrands(); else renderRows(); }
+  /* import hold lists: firms currently on the FDA red list or under an Australian holding order */
+  function holdTags(names) {
+    if (!holds) return "";
+    var on = {};
+    String(names || "").split("；").forEach(function (n) { var h = holdKey[firmKey(n.trim())]; if (h) Object.keys(h).forEach(function (s) { on[s] = 1; }); });
+    return ["US", "AU"].filter(function (s) { return on[s]; }).map(function (s) { return '<span class="hold">' + HOLD_TAG[s] + "</span>"; }).join("");
+  }
+  function holdHay(h) { if (h._h === undefined) h._h = (h.f + " " + h.fz + " " + h.p.join(" ") + " " + h.r.map(function (x) { return x[0] + " " + x[1]; }).join(" ")).toLowerCase(); return h._h; }
+  function holdScope(h) {
+    if (st.scope === "food") return h.g.some(function (g) { return FOOD.indexOf(g) > -1; });
+    if (st.scope === "nonfood") return h.g.some(function (g) { return FOOD.indexOf(g) === -1; });
+    return true;
+  }
+  function holdDate(h) { return h.dm === 2 ? "2009 年以前" : h.dm === 1 ? h.d.slice(0, 7) : h.d; }
+  function renderHolds() {
+    if (!holds) { $("count").textContent = ""; return; }
+    var words = st.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    var list = holds.filter(function (h) {
+      if (holdSrc && h.s !== holdSrc) return false;
+      if (!holdScope(h)) return false;
+      var t = holdHay(h);
+      return words.every(function (w) { return t.indexOf(w) > -1; });
+    });
+    var per = {}; list.forEach(function (h) { per[h.s] = (per[h.s] || 0) + 1; });
+    var pages = Math.max(1, Math.ceil(list.length / PER));
+    if (holdPage > pages) holdPage = pages;
+    $("count").textContent = "当前在名单上 " + fmt(list.length) + " 家（" + ["US", "AU"].filter(function (s) { return per[s]; }).map(function (s) { return (s === "US" ? "美国 FDA " : "澳大利亚 ") + fmt(per[s]); }).join("，") + "），按列入日期从新到旧";
+    $("page").textContent = holdPage + " / " + pages;
+    $("prev").disabled = holdPage <= 1; $("next").disabled = holdPage >= pages;
+    var slice = list.slice((holdPage - 1) * PER, holdPage * PER);
+    if (!slice.length) { $("hold-rows").innerHTML = '<tr><td colspan="7" class="empty">没有符合条件的企业。</td></tr>'; return; }
+    $("hold-rows").innerHTML = slice.map(function (h) {
+      var prods = h.p.map(esc).join("、") + (h.pn ? " 等 " + h.pn + " 类" : "");
+      return "<tr>" +
+        '<td data-k="国家"><span class="pill ' + h.s.toLowerCase() + '">' + (h.s === "US" ? "美国" : "澳大利亚") + "</span></td>" +
+        '<td class="firm" data-k="企业">' + esc(h.f) + "</td>" +
+        '<td data-k="中文名">' + (h.fz ? esc(h.fz) : '<span class="todo">待核实</span>') + "</td>" +
+        '<td data-k="产品"><div>' + prods + '</div><div class="small">' + h.g.map(esc).join("、") + "</div></td>" +
+        '<td class="reasons" data-k="扣留原因">' + h.r.map(function (x) { return "<div>" + esc(x[0]) + "</div>"; }).join("") + "</td>" +
+        '<td class="date" data-k="列入日期">' + esc(holdDate(h)) + "</td>" +
+        '<td data-k="原文">' + h.r.map(function (x) {
+          return '<div><a href="' + esc(HOLD_URL[h.s](x[2])) + '" target="_blank" rel="noopener">' + (h.s === "US" ? "进口警报 " : "扣留令 ") + esc(x[1]) + "</a></div>"; }).join("") + "</td></tr>";
+    }).join("");
+  }
+  function loadHolds() {
+    fetch("data/holds.json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (rows) {
+      holds = rows; holdKey = {};
+      rows.forEach(function (h) { var k = firmKey(h.f); (holdKey[k] = holdKey[k] || {})[h.s] = 1; });
+      renderList();
+    }).catch(function () { holds = []; if (tab === "holds") $("hold-rows").innerHTML = '<tr><td colspan="7" class="empty">名单加载失败。请刷新页面再试。</td></tr>'; });
+  }
+  function renderList() { if (tab === "firms") renderFirms(); else if (tab === "brands") renderBrands(); else if (tab === "holds") renderHolds(); else renderRows(); }
   function setTab(t) {
     tab = t;
     document.querySelectorAll("#tabs button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.tab === t)); });
     $("list-box").hidden = t !== "list"; $("firm-box").hidden = t !== "firms"; $("firm-note").hidden = t !== "firms";
     $("brand-box").hidden = t !== "brands"; $("brand-note").hidden = t !== "brands";
+    $("hold-box").hidden = t !== "holds"; $("hold-note").hidden = t !== "holds";
+    document.querySelector(".controls").classList.toggle("holds-mode", t === "holds");
     renderList();
   }
 
@@ -728,7 +802,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       else if (r.act) det += '<div class="small">处理：' + esc(r.act) + "</div>";
       if (r.o) det += '<div class="small">' + esc(r.o) + "</div>";
       var firm = (r.src === "SG" || r.src === "SFA") ? (r.f ? '<span class="small">品牌：</span>' + esc(r.f) : '<span class="small">品牌未公开</span>') :
-        (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">' + esc(r.fz) + (r.fd ? '<span class="gone">已注销</span>' : "") + "</div>" : "") +
+        (r.f ? esc(r.f) + holdTags(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">' + esc(r.fz) + (r.fd ? '<span class="gone">已注销</span>' : "") + "</div>" : "") +
         (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
       var link = /gdtbt\.org\.cn/.test(r.u || "") ? "广东平台月报" : LINK[r.src] || "原文";
@@ -780,10 +854,12 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     });
     $("reset").addEventListener("click", function () {
       $("f-src").value = ""; $("f-grp").value = ""; $("f-prob").value = ""; $("f-q").value = ""; $("f-lab").checked = false;
+      $("f-hold").value = ""; holdSrc = "";
       st.src = ""; st.q = ""; st.lab = false; apply();
     });
-    $("prev").addEventListener("click", function () { if (tab === "firms") firmPage--; else if (tab === "brands") brandPage--; else page--; renderList(); });
-    $("next").addEventListener("click", function () { if (tab === "firms") firmPage++; else if (tab === "brands") brandPage++; else page++; renderList(); });
+    $("prev").addEventListener("click", function () { if (tab === "firms") firmPage--; else if (tab === "brands") brandPage--; else if (tab === "holds") holdPage--; else page--; renderList(); });
+    $("next").addEventListener("click", function () { if (tab === "firms") firmPage++; else if (tab === "brands") brandPage++; else if (tab === "holds") holdPage++; else page++; renderList(); });
+    $("f-hold").addEventListener("change", function (e) { holdSrc = e.target.value; holdPage = 1; renderList(); });
     document.querySelectorAll("#tabs button").forEach(function (b) { b.addEventListener("click", function () { setTab(b.dataset.tab); }); });
   }
 
@@ -845,7 +921,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       Object.keys(meta.years).sort().reverse().map(function (y) { return '<option value="' + y + '">' + y + " 年</option>"; }).join("") +
       '<option value="all">全部（' + meta.from.slice(0, 4) + " 年起）</option>";
     $("f-period").value = st.period;
-    renderSources(); loadPeriod();
+    renderSources(); loadPeriod(); loadHolds();
   }).catch(function () {
     $("rows").innerHTML = '<tr><td colspan="7" class="empty">数据加载失败。请刷新页面再试。</td></tr>';
   });

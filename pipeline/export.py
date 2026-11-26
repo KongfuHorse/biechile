@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from datetime import date
 
-from . import cn_site, db, firms, images, normalize
+from . import cn_site, db, firms, holds, images, normalize
 
 SOURCES = {
     "TW": {"name": "中国台湾 食品药物管理署 (TFDA)", "url": "https://www.fda.gov.tw/UnsafeFood/UnsafeFood.aspx"},
@@ -154,5 +154,23 @@ def run(out_dir):
     }
     with open(os.path.join(out_dir, "data", "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=1)
+    try:
+        n_holds = export_holds(out_dir, firm_zh2)
+    except Exception as e:  # the hold lists are optional; never block the export
+        print("holds skipped:", e)
+        n_holds = 0
+    print(f"hold list firms: {n_holds}")
     print(f"mainland sampling rows: {len(cn)}")
     print(f"exported {len(rows)} records in {len(years)} year files, {n_img} approved images")
+
+
+def export_holds(out_dir, zh):
+    """site/data/holds.json: firms currently on the FDA red list or under an Australian holding order."""
+    us = db.fetch_table("holds", "src,ref,firm_key,firm,groups,products_zh,reason,listed_on,url,removed_on",
+                        "&src=eq.US&removed_on=is.null&order=ref,firm_key")
+    for e in us:
+        e["listed_on"] = str(e["listed_on"]) if e.get("listed_on") else None
+    rows = holds.site_rows(us + holds.au_rows(), zh)
+    with open(os.path.join(out_dir, "data", "holds.json"), "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False, separators=(",", ":"))
+    return len(rows)

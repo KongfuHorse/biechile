@@ -9,6 +9,10 @@ on:
         description: "Also load Hong Kong records from this year (e.g. 2020). Leave empty to skip."
         required: false
         default: ""
+      holds:
+        description: "Sync the import hold lists (FDA red list, Australian holding orders) now (yes to run)."
+        required: false
+        default: ""
       kr_gdtbt:
         description: "Load Korea history from the Guangdong WTO/SPS monthly reports the NAS downloaded (yes to run)."
         required: false
@@ -50,6 +54,12 @@ jobs:
           r = requests.post(db.URL + "/rest/v1/rpc/refresh_firm_all", headers=db._h(), json={}, timeout=300)
           print("refresh_firm_all", r.status_code)
           PY
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          PYTHONUNBUFFERED: "1"
+      - if: ${{ github.event.inputs.holds == 'yes' }}
+        run: python -c "from pipeline import holds; holds.run()"
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

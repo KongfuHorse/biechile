@@ -71,3 +71,5 @@ grant select, insert, update, delete on firm_address to service_role;
 -- Admin "刷新网站数据" button (Nov 2026): edge function admin-refresh (supabase/functions/admin-refresh)
 -- checks the login through admin_request_refresh (one request per 2 minutes, logged in admin_refresh_log)
 -- and starts workflow update.yml with export_only=yes. Needs edge function secret GITHUB_DISPATCH_TOKEN.
+
+-- holds: import hold lists (FDA import alert red list, Australian holding orders); see supabase/migration_holds.sql

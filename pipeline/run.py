@@ -12,7 +12,7 @@ import traceback
 import requests
 from datetime import date, timedelta
 
-from . import au, cn_daily, cpsc, db, eu, export, fda_address, firms, hk, images, jp, kr, mt, normalize, sfa, sg, sources
+from . import au, cn_daily, cpsc, db, eu, export, fda_address, firms, hk, holds, images, jp, kr, mt, normalize, sfa, sg, sources
 
 SITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site")
 
@@ -158,7 +158,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", help="backfill start date YYYY-MM-DD")
     ap.add_argument("--export-only", action="store_true")
-    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa cpsc au hk cn img firms")
+    ap.add_argument("--skip", nargs="*", default=[], help="sources to skip: tw us jp eu kr sg sfa cpsc au hk cn holds img firms")
     a = ap.parse_args()
     print("storage:", "Supabase" if db.using_supabase() else "local file")
     failed = False
@@ -241,6 +241,14 @@ def main():
                 db.log_run("CN", n, n, "ok", f"new notices asked from the NAS: {asked}")
             except Exception:
                 db.log_run("CN", 0, 0, "error", traceback.format_exc())  # the NAS being away must not fail the run
+
+        # import hold lists: FDA import alert red list (daily) and Australian holding orders (file refreshed by hand)
+        if "holds" not in a.skip:
+            try:
+                holds.run()
+                db.log_run("HOLDS", 0, 0, "ok", "")
+            except Exception:
+                db.log_run("HOLDS", 0, 0, "error", traceback.format_exc())  # a list page failing must not fail the run
 
         # product photos for EU RASFF records (admin approves them before they show)
         if "img" not in a.skip:
