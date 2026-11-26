@@ -323,7 +323,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         <li>中国台湾的记录都是边境抽样检验的结果。"食品接触材料"指餐具、烘焙纸、砧板等容器具。</li>
         <li>日本的记录来自厚生劳动省每月公布的进口时违反事例，都是检疫所检验不合格的货物。</li>
         <li>欧盟 RASFF 包括两类：口岸检查发现的"边境拒绝"，和在市场上抽检发现后发出的预警、信息通报。来源一栏标明了类型。欧盟公开数据不包含企业名称和品牌。</li>
-        <li>韩国食药处的进口不合格名单只公开最近约半年（本站最早的韩国记录是 2026 年 5 月），本站每天保存新记录，更早的无法补齐。</li>
+        <li>韩国食药处的进口不合格名单只公开最近约半年，本站从 2026 年 5 月起每天直接保存。更早的韩国记录（2020 年 10 月至 2026 年 5 月）来自广东省 WTO/SPS 信息平台按月编译的韩国食药处通报，原文链接指向该平台的月度汇总；这部分是二手整理，个别月份平台没有发布，会有缺漏。</li>
         <li>欧盟 Safety Gate 是欧盟的非食品危险产品预警系统，收录玩具、电器、化妆品、儿童用品等。记录包含品牌、型号、条码、网上销售平台和产品照片，照片直接显示欧盟官方图片。</li>
         <li>欧盟 RASFF 部分通报附有各国官方或零售商的公开警示页面。我们从这些页面收集产品照片，经人工核对后才显示，并注明图片来源。</li>
         <li>新加坡不公布进口拒收记录，本站收录的是新加坡食品局对已上市中国食品的召回通报。食品局事后撤销的召回标为"召回已撤销"，并写明原因。</li>
@@ -731,7 +731,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">' + esc(r.fz) + (r.fd ? '<span class="gone">已注销</span>' : "") + "</div>" : "") +
         (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
-      var link = LINK[r.src] || "原文";
+      var link = /gdtbt\.org\.cn/.test(r.u || "") ? "广东平台月报" : LINK[r.src] || "原文";
       return '<tr class="sev-' + (r.nt === "召回已撤销" ? "calm" : sev(r.prob)) + '">' +
         '<td class="date" data-k="日期">' + esc(r.d) + "</td>" +
         '<td data-k="来源"><span class="pill ' + r.src.toLowerCase() + '">' + (SRC_NAME[r.src] || r.src) + "</span>" + (r.nt ? '<div><span class="pill nt' + (r.nt === "召回已撤销" ? " ok" : "") + '">' + esc(r.nt) + "</span></div>" : "") + "</td>" +
