@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m pipeline.fda_address 2020-01-01 && mkdir -p out && echo ok > out/done.txt
+      - run: python -m pipeline.kr_gdtbt --dry && mkdir -p out && mv kr_gdtbt.json out/
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
