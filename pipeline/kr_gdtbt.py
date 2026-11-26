@@ -113,7 +113,7 @@ def records(url, page, title, first_direct):
         detail = viol + (f"（检测结果：{d['result']}）" if d.get("result") else "")
         if d.get("std"):
             detail += f"（标准：{d['std']}）"
-        note = [f"出口企业所在省份：{d['prov']}"] if d.get("prov") else []
+        note = [f"出口企业所在省份：{d['prov']}"] if d.get("prov") and d["prov"] not in ("未知", "/", "-") else []
         note.append("来源：广东省WTO/SPS信息平台编译的韩国食药处通报《" + title + "》")
         out.append({
             "id": f"KR-GD-{nid}-{i}", "src": "KR", "pub_date": date, "insp_date": None,

@@ -731,7 +731,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
         (r.f ? esc(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">' + esc(r.fz) + (r.fd ? '<span class="gone">已注销</span>' : "") + "</div>" : "") +
         (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
-      var link = LINK[r.src] || "原文";
+      var link = /gdtbt\.org\.cn/.test(r.u || "") ? "广东平台月报" : LINK[r.src] || "原文";
       return '<tr class="sev-' + (r.nt === "召回已撤销" ? "calm" : sev(r.prob)) + '">' +
         '<td class="date" data-k="日期">' + esc(r.d) + "</td>" +
         '<td data-k="来源"><span class="pill ' + r.src.toLowerCase() + '">' + (SRC_NAME[r.src] || r.src) + "</span>" + (r.nt ? '<div><span class="pill nt' + (r.nt === "召回已撤销" ? " ok" : "") + '">' + esc(r.nt) + "</span></div>" : "") + "</td>" +
