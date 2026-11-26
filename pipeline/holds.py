@@ -329,6 +329,7 @@ if __name__ == "__main__":
     if "--dry-jpkr" in sys.argv:
         jp, jok = jp_fetch()
         kr, kok = kr_fetch()
+        open("kr_raw.html", "w").write(_get(KR_LIST.format(page=1)))
         json.dump({"jp": jp, "kr": kr, "jp_ok": jok, "kr_ok": kok}, open("holds_jpkr.json", "w"), ensure_ascii=False)
         print("JP", len(jp), jok, "KR", len(kr), kok)
     elif "--dry" in sys.argv:
