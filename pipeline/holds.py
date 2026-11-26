@@ -252,7 +252,7 @@ def kr_fetch():
     while page <= 20:
         s = re.sub(r"<!--.*?-->", "", _get(KR_LIST.format(page=page)), flags=re.S)
         s = re.sub(r'<strong class="td-title"[^>]*>.*?</strong>', "", s, flags=re.S)
-        tb = s[s.find("<tbody"):s.find("</tbody>")]
+        tb = "".join(re.findall(r"<tbody.*?</tbody>", s, re.S))
         rows = [[_txt(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)] for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb, re.S)]
         rows = [r for r in rows if len(r) >= 8 and re.match(r"[A-Z]{2}\d+", r[1])]
         for r in rows:
@@ -329,7 +329,6 @@ if __name__ == "__main__":
     if "--dry-jpkr" in sys.argv:
         jp, jok = jp_fetch()
         kr, kok = kr_fetch()
-        open("kr_raw.html", "w").write(_get(KR_LIST.format(page=1)))
         json.dump({"jp": jp, "kr": kr, "jp_ok": jok, "kr_ok": kok}, open("holds_jpkr.json", "w"), ensure_ascii=False)
         print("JP", len(jp), jok, "KR", len(kr), kok)
     elif "--dry" in sys.argv:
