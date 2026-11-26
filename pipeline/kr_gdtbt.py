@@ -20,8 +20,8 @@ from . import cn_site, db
 
 NOTE = "2026 年 5 月以前的韩国记录：广东省 WTO/SPS 信息平台编译的韩国食药处数据"
 COLS = [("seq", r"序号"), ("product", r"产品名称|品名"), ("cat", r"产品类别|类别|品类"),
-        ("firm", r"制造商|出口公司|生产企业|企业名称|出口商|生产商"), ("prov", r"所属|地市|省份|产地|地区"),
-        ("viol", r"违反内容|违规内容|违反事项|不合格原因|违反原因|违规原因"), ("result", r"检测结果|检验结果|结果"),
+        ("firm", r"制造|出口公司|出口企业|生产企业|企业名称|出口商|生产商"), ("prov", r"所属|地市|省份|产地|地区"),
+        ("viol", r"违反内容|违规内容|违反事项|不合格原因|违反原因|违规原因"), ("std", r"检测标准|标准值|限量"), ("result", r"检测结果|检验结果|结果"),
         ("date", r"发布日期|通报日期|日期")]
 
 
@@ -60,6 +60,7 @@ def rows_of(page):
             if cols is None:
                 names = []
                 for c in cells:
+                    c = re.sub(r"\s", "", c)
                     names.append(next((k for k, rx in COLS if re.search(rx, c)), None))
                 if names.count(None) <= len(names) - 3 and "product" in names:
                     cols = names
@@ -104,6 +105,8 @@ def records(url, page, title, first_direct):
         if letters and sum(c.isupper() for c in letters) / len(letters) > 0.6:
             firm = firm.upper()  # the site prints "ON" inside names as "on" ("LonGNAN")
         detail = viol + (f"（检测结果：{d['result']}）" if d.get("result") else "")
+        if d.get("std"):
+            detail += f"（标准：{d['std']}）"
         note = [f"出口企业所在省份：{d['prov']}"] if d.get("prov") else []
         note.append("来源：广东省WTO/SPS信息平台编译的韩国食药处通报《" + title + "》")
         out.append({
