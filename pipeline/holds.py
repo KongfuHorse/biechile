@@ -340,9 +340,10 @@ if __name__ == "__main__":
         run()
 
 
-def site_rows(entries, zh=None):
+def site_rows(entries, zh=None, brand=None):
     """Active entries grouped per country and firm, with short keys for site/data/holds.json."""
     zh = zh or {}
+    brand = brand or {}
     groups = {}
     for e in entries:
         if e.get("removed_on") or e.get("revoked"):
@@ -350,6 +351,8 @@ def site_rows(entries, zh=None):
         k = (e["src"], e["firm_key"])
         g = groups.setdefault(k, {"s": e["src"], "f": e["firm"], "fz": zh.get(e["firm_key"], ""), "g": [], "p": [],
                                   "r": [], "d": None, "dm": 0})
+        if brand.get(e["firm_key"]):
+            g["fb"] = brand[e["firm_key"]].strip()
         g["g"] += [x for x in e["groups"] if x not in g["g"]]
         g["p"] += [x for x in e["products_zh"] if x not in g["p"]]
         # link kept short: the alert page id (US) or the instrument file name (AU)
