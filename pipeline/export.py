@@ -166,8 +166,9 @@ def run(out_dir):
 
 def export_holds(out_dir, zh):
     """site/data/holds.json: firms currently on the FDA red list or under an Australian holding order."""
+    # US, JP, KR from the table (synced daily); AU straight from its hand-refreshed file
     us = db.fetch_table("holds", "src,ref,firm_key,firm,groups,products_zh,reason,listed_on,url,removed_on",
-                        "&src=eq.US&removed_on=is.null&order=ref,firm_key")
+                        "&src=in.(US,JP,KR)&removed_on=is.null&order=src,ref,firm_key")
     for e in us:
         e["listed_on"] = str(e["listed_on"]) if e.get("listed_on") else None
     rows = holds.site_rows(us + holds.au_rows(), zh)
