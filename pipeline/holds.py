@@ -247,23 +247,24 @@ KR_PAGE = "https://impfood.mfds.go.kr/CFCCC01F08"
 
 
 def kr_fetch():
-    out, total, page = [], None, 1
-    while True:
-        s = _get(KR_LIST.format(page=page))
-        t = re.search(r"총\s*([\d,]+)\s*건", s)
-        total = int(t.group(1).replace(",", "")) if t else total
-        tb = s[s.rfind("<table"):]
+    """Current list, and whether it was read to the end (the last page has fewer than 100 rows)."""
+    out, page, complete = [], 1, False
+    while page <= 20:
+        s = re.sub(r"<!--.*?-->", "", _get(KR_LIST.format(page=page)), flags=re.S)
+        s = re.sub(r'<strong class="td-title"[^>]*>.*?</strong>', "", s, flags=re.S)
+        tb = s[s.find("<tbody"):s.find("</tbody>")]
         rows = [[_txt(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)] for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb, re.S)]
-        rows = [r for r in rows if len(r) >= 8]
+        rows = [r for r in rows if len(r) >= 8 and re.match(r"[A-Z]{2}\d+", r[1])]
         for r in rows:
             # 번호 업소코드 업소분류 국가 업소명 구분 기준일 중단시작일 해제일 비고
             out.append({"src": "KR", "ref": r[1], "firm": r[4], "firm_key": firm_key(r[4]), "address": "",
                         "products": [], "products_zh": [], "groups": ["食品"], "reason": "暂停进口",
                         "listed_on": r[7] if re.fullmatch(r"\d{4}-\d\d-\d\d", r[7]) else None, "url": KR_PAGE})
-        if not rows or len(out) >= (total or 0) or page > 20:
+        if len(rows) < 100:
+            complete = True
             break
         page += 1
-    return out, total is not None and len(out) == total
+    return out, complete
 
 
 # ---------- database ----------
