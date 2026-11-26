@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>biechile 后台</title>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -104,6 +105,7 @@
   <form id="loginForm">
     <label for="username">账号<input id="username" autocomplete="username" required></label>
     <label for="password">密码<input id="password" type="password" autocomplete="current-password" required></label>
+    <div id="captcha" style="min-height:65px;margin:2px 0 12px"></div>
     <button class="primary" type="submit" id="loginBtn">登录</button>
     <div class="error" id="loginError"></div>
   </form>
@@ -279,14 +281,37 @@ function showLogin(msg) {
   $("app").classList.add("hidden"); $("login").classList.remove("hidden");
   $("loginError").textContent = msg || "";
 }
+// Cloudflare Turnstile (human check). The site key is public; the secret is only in the admin-login function.
+const TURNSTILE_SITE_KEY = "0x4AAAAAAGTlhvs7CRiLzH2t";
+let captchaId = null, captchaToken = "";
+function renderCaptcha() {
+  if (captchaId !== null || !window.turnstile) return;
+  captchaId = turnstile.render("#captcha", {
+    sitekey: TURNSTILE_SITE_KEY, language: "zh-cn",
+    callback: t => { captchaToken = t; },
+    "expired-callback": () => { captchaToken = ""; },
+    "error-callback": () => { captchaToken = ""; },
+  });
+}
+(function waitCaptcha() { if (window.turnstile) renderCaptcha(); else setTimeout(waitCaptcha, 200); })();
+function resetCaptcha() { captchaToken = ""; if (captchaId !== null && window.turnstile) turnstile.reset(captchaId); }
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
+  if (!captchaToken) { $("loginError").textContent = "请先完成人机验证"; return; }
   $("loginBtn").disabled = true; $("loginError").textContent = "";
   try {
-    token = await rpc("admin_login", { p_username: $("username").value.trim(), p_password: $("password").value });
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/admin-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: $("username").value.trim(), password: $("password").value, captcha: captchaToken }),
+    });
+    const res = await r.json().catch(() => ({}));
+    if (!r.ok || !res.token) throw new Error(res.error || "登录失败");
+    token = res.token;
     store("adminToken", token); $("password").value = "";
     await enterApp();
   } catch (err) { $("loginError").textContent = err.message; }
+  resetCaptcha();  // a Turnstile answer can be used only once
   $("loginBtn").disabled = false;
 });
 $("logoutBtn").addEventListener("click", async () => {

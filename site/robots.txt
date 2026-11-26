@@ -1,0 +1,19 @@
+# biechile.com
+# 搜索引擎可以正常收录；以下 AI 训练和数据采集爬虫请勿抓取。
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: anthropic-ai
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: PerplexityBot
+User-agent: meta-externalagent
+User-agent: Amazonbot
+User-agent: Diffbot
+User-agent: ImagesiftBot
+User-agent: omgili
+Disallow: /
