@@ -405,7 +405,7 @@ function renderFirms() {
   $("firmRows").innerHTML = firms.map((f, i) => {
     const rank = (firmPage - 1) * PAGE + i + 1;
     const zh = f.zh_name
-      ? `<span class="tag ok">已核实</span>${f.dissolved ? ' <span class="tag none">已注销</span>' : ""} ${esc(f.zh_name)}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
+      ? `<span class="tag ok">已核实</span>${f.dissolved ? ' <span class="tag none">已注销</span>' : ""} ${esc(f.zh_name)}${f.brand ? `<div class="small">品牌：${esc(f.brand)}</div>` : ""}<div class="small muted">${esc(f.credit_code || "")} ${f.verified_by ? "· " + esc(f.verified_by) : ""}</div>`
       : `<span class="tag none">未核实</span>${aiSummary(f)}`;
     const srcs = (f.sources || []).map(s => SRC_NAME[s] || s).join("、");
     let row = `<tr data-key="${esc(f.firm_key)}">
@@ -436,6 +436,7 @@ function editorRow(f) {
     <form class="form-grid" data-save="${esc(f.firm_key)}">
       <label for="${id("zh")}">中文全称（核实过的）<input id="${id("zh")}" name="zh" value="${esc(f.zh_name || "")}" required></label>
       <label for="${id("code")}">统一社会信用代码<input id="${id("code")}" name="code" value="${esc(f.credit_code || "")}" maxlength="18"></label>
+      <label class="wide" for="${id("brand")}">品牌名（选填）<input id="${id("brand")}" name="brand" value="${esc(f.brand || "")}" placeholder="如：伊利、Geekvape；多个品牌用顿号分开"></label>
       <label class="wide" for="${id("addr")}">中文地址<input id="${id("addr")}" name="addr" value="${esc(f.zh_address || "")}">
         ${f.fda_address ? `<span class="small muted" style="font-weight:normal">FDA 档案地址：${esc(f.fda_address)}</span>` : ""}</label>
       <label class="wide" for="${id("url")}">来源或官网<input id="${id("url")}" name="url" type="url" value="${esc(f.source_url || "")}" placeholder="https://..."></label>
@@ -465,9 +466,9 @@ $("firmRows").addEventListener("submit", async e => {
   e.preventDefault();
   const f = firms.find(x => x.firm_key === form.dataset.save), d = new FormData(form);
   try {
-    await rpc("admin_save_firm3", { p_token: token, p_key: f.firm_key, p_firm_en: f.firm_en, p_zh: d.get("zh"),
+    await rpc("admin_save_firm4", { p_token: token, p_key: f.firm_key, p_firm_en: f.firm_en, p_zh: d.get("zh"),
       p_zh_address: d.get("addr"), p_credit_code: d.get("code"), p_source_url: d.get("url"), p_note: d.get("note"),
-      p_dissolved: d.get("gone") === "on" });
+      p_dissolved: d.get("gone") === "on", p_brand: d.get("brand") });
     editing = null; await loadFirms(); toast("已保存");
   } catch (err) { toast(err.message, true); }
 });

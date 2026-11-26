@@ -425,7 +425,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     var SAME = { "噁": "恶" };  // variant characters written both ways in the data
     function norm(t) { return t.toLowerCase().replace(/[噁]/g, function (c) { return SAME[c]; }); }
     function hay(r) {
-      if (r._h === undefined) r._h = norm(r.p + " " + (r.p0 || "") + " " + r.ind + " " + r.f + " " + (r.fz || "") + " " + r.imp + " " + r.x + " " + r.grp + " " + (r.o || "") + " " + (r.nt || ""));
+      if (r._h === undefined) r._h = norm(r.p + " " + (r.p0 || "") + " " + r.ind + " " + r.f + " " + (r.fz || "") + " " + (r.fb || "") + " " + r.imp + " " + r.x + " " + r.grp + " " + (r.o || "") + " " + (r.nt || ""));
       return r._h;
     }
     function name(r) {
@@ -646,17 +646,18 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       r.f.split("；").forEach(function (name) {
         name = name.trim(); var k = firmKey(name);
         if (!k || /^(UNKNOWN|NA|NONE)$/.test(k)) return;
-        var g = m[k] || (m[k] = { n: 0, names: {}, src: {}, last: "", zh: "", fd: false, probs: {} });
+        var g = m[k] || (m[k] = { n: 0, names: {}, src: {}, last: "", zh: "", fb: "", fd: false, probs: {} });
         g.n++; g.names[name] = (g.names[name] || 0) + 1; g.src[r.src] = (g.src[r.src] || 0) + 1;
         if (r.d > g.last) g.last = r.d;
         if (r.fd) g.fd = true;
+        if (r.fb && !g.fb) g.fb = r.fb;
         if (r.fz) g.zh = r.fz; else if (!g.zh && CJK_RE.test(name)) g.zh = name;
         r.prob.forEach(function (p) { g.probs[p] = (g.probs[p] || 0) + 1; });
       });
     });
     function top(o) { return Object.keys(o).sort(function (a, b) { return o[b] - o[a]; }); }
     return Object.keys(m).map(function (k) {
-      var g = m[k]; return { name: top(g.names)[0], n: g.n, zh: g.zh, fd: g.fd, src: top(g.src), last: g.last, probs: top(g.probs).slice(0, 2) };
+      var g = m[k]; return { name: top(g.names)[0], n: g.n, zh: g.zh, fb: g.fb, fd: g.fd, src: top(g.src), last: g.last, probs: top(g.probs).slice(0, 2) };
     }).sort(function (a, b) { return b.n - a.n || (a.last < b.last ? 1 : -1); });
   }
   function renderFirms() {
@@ -673,7 +674,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       if (g.fd) zh += '<span class="gone">已注销</span>';
       return "<tr>" +
         '<td class="rank" data-k="排名">' + (start + i + 1) + "</td>" +
-        '<td class="firm" data-k="企业">' + esc(g.name) + (NON_PRODUCER.test(g.name) ? '<span class="pill np" title="按名称识别的货代或物流公司">非生产企业</span>' : "") + holdTags(g.name) + "</td>" +
+        '<td class="firm" data-k="企业">' + esc(g.name) + (NON_PRODUCER.test(g.name) ? '<span class="pill np" title="按名称识别的货代或物流公司">非生产企业</span>' : "") + holdTags(g.name) + brandLine(g.fb) + "</td>" +
         '<td data-k="中文名">' + zh + "</td>" +
         '<td class="num" data-k="上榜次数">' + fmt(g.n) + "</td>" +
         '<td data-k="通报来源"><div class="pills">' + g.src.map(function (s) { return '<span class="pill ' + s.toLowerCase() + '">' + (SRC_NAME[s] || s) + "</span>"; }).join("") + "</div></td>" +
@@ -733,7 +734,9 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
     String(names || "").split("；").forEach(function (n) { var h = holdKey[firmKey(n.trim())]; if (h) Object.keys(h).forEach(function (s) { on[s] = 1; }); });
     return HOLD_SRC.filter(function (s) { return on[s]; }).map(function (s) { return '<span class="hold">' + HOLD_TAG[s] + "</span>"; }).join("");
   }
-  function holdHay(h) { if (h._h === undefined) h._h = (h.f + " " + h.fz + " " + h.p.join(" ") + " " + h.r.map(function (x) { return x[0] + " " + x[1]; }).join(" ")).toLowerCase(); return h._h; }
+  // brand name a verified firm sells under (entered in the admin page), shown under the firm name
+  function brandLine(b) { return b ? '<div class="small brand">品牌：' + esc(b) + "</div>" : ""; }
+  function holdHay(h) { if (h._h === undefined) h._h = (h.f + " " + h.fz + " " + (h.fb || "") + " " + h.p.join(" ") + " " + h.r.map(function (x) { return x[0] + " " + x[1]; }).join(" ")).toLowerCase(); return h._h; }
   function holdScope(h) {
     if (st.scope === "food") return h.g.some(function (g) { return FOOD.indexOf(g) > -1; });
     if (st.scope === "nonfood") return h.g.some(function (g) { return FOOD.indexOf(g) === -1; });
@@ -761,7 +764,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       var prods = h.p.length ? h.p.map(esc).join("、") + (h.pn ? " 等 " + h.pn + " 类" : "") : '<span class="todo">未公布</span>';
       return "<tr>" +
         '<td data-k="国家"><span class="pill ' + h.s.toLowerCase() + '">' + HOLD_NAME[h.s].trim().replace(" FDA", "") + "</span></td>" +
-        '<td class="firm" data-k="企业">' + esc(h.f) + "</td>" +
+        '<td class="firm" data-k="企业">' + esc(h.f) + brandLine(h.fb) + "</td>" +
         '<td data-k="中文名">' + (h.fz ? esc(h.fz) : '<span class="todo">待核实</span>') + "</td>" +
         '<td data-k="产品"><div>' + prods + '</div><div class="small">' + h.g.map(esc).join("、") + "</div></td>" +
         '<td class="reasons" data-k="扣留原因">' + h.r.map(function (x) { return "<div>" + esc(x[0]) + "</div>"; }).join("") + "</td>" +
@@ -818,7 +821,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
       if (r.o) det += '<div class="small">' + esc(r.o) + "</div>";
       if (r.src === "US" && /\[MELAMINE\]/.test(r.x)) det += '<div class="small mel">关于三聚氰胺：FDA 对中国乳制品及含乳食品实行全国性进口警报，进口商拿不出第三方检测证明，就可以按“三聚氰胺”理由拒收，不一定经过化验。“FDA 整票化验”按整票货记录，不代表这一产品检出三聚氰胺。<a href="#mel-note">详细说明</a></div>';
       var firm = (r.src === "SG" || r.src === "SFA") ? (r.f ? '<span class="small">品牌：</span>' + esc(r.f) : '<span class="small">品牌未公开</span>') :
-        (r.f ? esc(r.f) + holdTags(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">' + esc(r.fz) + (r.fd ? '<span class="gone">已注销</span>' : "") + "</div>" : "") +
+        (r.f ? esc(r.f) + holdTags(r.f) : r.src === "EU" ? '<span class="small">欧盟不公开企业名</span>' : "") + (r.fz ? '<div class="small">' + esc(r.fz) + (r.fd ? '<span class="gone">已注销</span>' : "") + "</div>" : "") + brandLine(r.fb) +
         (r.imp ? '<div class="small">进口商：' + esc(r.imp) + "</div>" : "");
       var cat = esc(r.grp) + (r.ind && r.ind !== r.grp ? " · " + esc(r.ind) : "");
       var link = /gdtbt\.org\.cn/.test(r.u || "") ? "广东平台月报" : LINK[r.src] || "原文";

@@ -82,6 +82,8 @@ def short(r):
     if r.get("src") == "US":
         yes = lambda v: (v or "").strip() == "Yes"
         out["la"] = [1 if yes(r.get("fdalab")) else 0, 1 if yes(r.get("privlab")) else 0]  # FDA sample (per entry), importer's lab
+    if r.get("firm_brand"):
+        out["fb"] = r["firm_brand"]  # brand name entered in the admin page (optional)
     if r.get("firm_gone"):
         out["fd"] = 1  # verified firm marked dissolved (注销) in the admin page
     return out
@@ -105,7 +107,8 @@ def run(out_dir):
     tt = {(t["kind"], t["source"]): (t["zh"], t["status"])
           for t in db.fetch_table("term_translations", "kind,source,zh,status", "&order=kind,source")}
     firm_zh = {f["fei"]: f["zh_name"] for f in db.fetch_table("firm_names", "fei,zh_name", "&order=fei")}
-    zh_rows = db.fetch_table("firm_zh", "firm_key,zh_name,dissolved", "&order=firm_key")
+    zh_rows = db.fetch_table("firm_zh", "firm_key,zh_name,dissolved,brand", "&order=firm_key")
+    firm_brand = {f["firm_key"]: f["brand"] for f in zh_rows if (f.get("brand") or "").strip()}
     firm_zh2 = {f["firm_key"]: f["zh_name"] for f in zh_rows}
     firm_gone = {f["firm_key"] for f in zh_rows if f.get("dissolved")}
     for r in rows:
@@ -128,6 +131,9 @@ def run(out_dir):
                 r["firm_zh"] = zh
             if any(k in firm_gone for k in keys):
                 r["firm_gone"] = True
+            br = "、".join(dict.fromkeys(firm_brand[k].strip() for k in keys if firm_brand.get(k)))
+            if br:
+                r["firm_brand"] = br
     for r in rows:
         if r.get("src") == "SG":
             r["im"] = ["sg:" + str(i) for i in (r.get("sgpic") or [])][:6]
@@ -159,7 +165,7 @@ def run(out_dir):
     with open(os.path.join(out_dir, "data", "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=1)
     try:
-        n_holds = export_holds(out_dir, firm_zh2)
+        n_holds = export_holds(out_dir, firm_zh2, firm_brand)
     except Exception as e:  # the hold lists are optional; never block the export
         print("holds skipped:", e)
         n_holds = 0
@@ -168,14 +174,14 @@ def run(out_dir):
     print(f"exported {len(rows)} records in {len(years)} year files, {n_img} approved images")
 
 
-def export_holds(out_dir, zh):
+def export_holds(out_dir, zh, brand=None):
     """site/data/holds.json: firms currently on the FDA red list or under an Australian holding order."""
     # US, JP, KR from the table (synced daily); AU straight from its hand-refreshed file
     us = db.fetch_table("holds", "src,ref,firm_key,firm,groups,products_zh,reason,listed_on,url,removed_on",
                         "&src=in.(US,JP,KR)&removed_on=is.null&order=src,ref,firm_key")
     for e in us:
         e["listed_on"] = str(e["listed_on"]) if e.get("listed_on") else None
-    rows = holds.site_rows(us + holds.au_rows(), zh)
+    rows = holds.site_rows(us + holds.au_rows(), zh, brand)
     with open(os.path.join(out_dir, "data", "holds.json"), "w", encoding="utf-8") as f:
         json.dump(rows, f, ensure_ascii=False, separators=(",", ":"))
     return len(rows)
