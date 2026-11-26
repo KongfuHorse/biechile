@@ -5,7 +5,7 @@ and the agent on the NAS downloads it when the version changes. Each handler is
     handler(args: dict, ctx) -> dict
 where ctx has .log (a logger), .put_file(name, mime, bytes), .data_dir and .job_id.
 """
-from . import assist, download, probe
+from . import assist, browse, download, probe
 
 HANDLERS = {
     "net": probe.net,      # plain HTTP checks, no browser
@@ -13,5 +13,6 @@ HANDLERS = {
     "fetch": probe.fetch,  # open one page in the browser and return its text (and HTML)
     "capture": probe.capture,  # do a few clicks/typing on a page and record its data requests
     "pages": download.pages,  # plain download of pages and the documents they link to
+    "browse": browse.browse,  # the same with a real browser, for sites that refuse plain downloads
     "spcj_search": assist.spcj_search,  # food sampling search; a person finishes the slider check
 }
